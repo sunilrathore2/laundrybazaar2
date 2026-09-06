@@ -1,1 +1,2884 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Laundry Bazaar Management Portal</title>
+  <style>
+    * { box-sizing: border-box; }
+    body, body * { font-size: 12px !important; font-weight: 700 !important; }
+    html, body { width:100%; min-width:0; max-width:100%; min-height:100%; margin:0; overflow-x:hidden; }
+    html { overscroll-behavior-x:none; }
+    body { font-family:Arial, sans-serif; background:#f4f6fa; padding:0 0 28px; aspect-ratio:9 / 16; }
+    .tabs-grid { display:grid; grid-template-columns:repeat(var(--tab-cols, 4), minmax(0, 1fr)); width:100%; gap:2px; padding:2px; }
+    .tab { display:flex; align-items:center; justify-content:center; min-width:0; min-height:40px; background:#FFA500; color:#fff; padding:4px 2px; margin:0; cursor:pointer; border-radius:6px; text-align:center; overflow-wrap:anywhere; }
+    .tab.active { background: #fff; color: #FFA500; border: solid 1px #FFA500; border-bottom: none; }
+    .section { display: none; width:100%; padding:16px 12px; background: #fff; border-radius: 0 8px 8px 8px; box-shadow: 0 2px 10px #e0e6f0; }
+    .section.active { display: block; }
+    .form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .form-row label { min-width: 110px; }
+    .table-holder { background: #f0f2fd; padding: 16px; border-radius: 8px; margin-bottom: 10px; overflow-x:hidden;}
+    .token-card-list { display:grid; grid-template-columns:1fr; gap:10px; width:100%; }
+    .token-card { width:100%; padding:12px; border:1px solid #FFA500; border-radius:8px; background:#fff; }
+    .token-card.booked { border-color:#28a745; background:#d9f7df; }
+    .token-card-row { display:grid; grid-template-columns:105px minmax(0,1fr); gap:8px; margin-bottom:7px; align-items:start; }
+    .token-card-row:last-child { margin-bottom:0; }
+    .token-card-label { color:#444; }
+    .token-card-value { min-width:0; overflow-wrap:anywhere; }
+    .token-card-action { margin-top:10px; text-align:right; }
+    .btn { display: inline-block; padding: 8px 18px; border: none; border-radius: 4px; background: #FFA500; color: #fff; cursor: pointer; text-decoration: none; font-size: 14px; margin: 2px; }
+    .btn[disabled] { background: #ccc; cursor: not-allowed; }
+    .error { color: red; }
+    .success { color: green; }
+    .info { color: #0066cc; font-style: italic; }
+    #logoSection { width:100%; background:#fff; text-align:center; overflow:hidden; }
+    .logo { display:block; width:100%; max-width:100%; height:auto; object-fit:contain; margin:40px 0 0; }
+    .top-header {
+      display:grid;
+      grid-template-columns:60% 40%;
+      width:100%;
+      max-width:100%;
+      align-items:end;
+      background:#fff;
+      overflow:hidden;
+    }
+    .top-header #logoSection {
+      grid-column:1;
+      width:100% !important;
+      max-width:100% !important;
+      justify-self:start;
+    }
+    .top-header #userBar {
+      grid-column:2;
+      width:100% !important;
+      height:auto !important;
+      align-self:end !important;
+      margin:0 !important;
+      padding:0 10px !important;
+      text-align:right !important;
+      float:none !important;
+      font-size:12px !important;
+      font-weight:700 !important;
+      overflow-wrap:anywhere;
+      flex-direction:column !important;
+      align-items:flex-end !important;
+      justify-content:flex-end !important;
+      gap:4px;
+    }
+    .top-header #userBar .logout-btn {
+      background:#d32f2f !important;
+      color:#fff !important;
+      font-size:12px !important;
+      font-weight:700 !important;
+      min-height:28px !important;
+      padding:4px 8px !important;
+      margin:0 !important;
+    }
+    .payment-mode-buttons {
+      flex:1 1 0;
+      min-width:0;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+    }
+    .payment-mode-buttons .payment-mode-btn {
+      width:100% !important;
+      min-height:38px !important;
+      background:#ddd !important;
+      color:#333 !important;
+      border:2px solid #FFA500 !important;
+    }
+    .payment-mode-buttons .payment-mode-btn.active {
+      background:#FFA500 !important;
+      color:#fff !important;
+    }
+    th, td { padding: 6px 12px; border: none; }
+    .bordered { border: 2px solid #FFA500; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #ffd580; text-align: center; padding: 6px; }
+    th { background: #FFA500; color: white; }
+    #printInvoiceBtn, #printTagBtn, #remoteInvoiceBtn, #remoteTagBtn { display: none; }
+    .recording { background:#d9534f !important; }
+    .audio-status { margin-left:8px; font-weight:bold; }
+    
+    .total-row td {
+      font-weight: bold;
+      font-size: 1.15em;
+      background: #fff0c2;
+      color: #444;
+      padding: 10px;
+      text-align: center;
+      border: none;
+    }
+
+    .reportTabBtn {
+      background-color: #eee;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 10px 18px;
+      margin-right: 4px;
+      font-weight: bold;
+      font-size: 15px;
+      border-radius: 8px 8px 0 0;
+      color: #444;
+      transition: background-color 0.3s ease;
+    }
+    .reportTabBtn:hover { background-color: #ddd; }
+    .reportTabBtn.active { background-color: #FFA500; color: white; }
+    
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #FFA500;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #deliveryRemarks {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      border: 1px solid #FFA500;
+      border-radius: 4px;
+      padding: 8px;
+      min-height: 60px;
+      resize: vertical;
+      transition: border-color 0.3s ease;
+      flex: 1;
+    }
+
+    #deliveryRemarks:focus {
+      outline: none;
+      border-color: #FF8C00;
+      box-shadow: 0 0 5px rgba(255, 165, 0, 0.3);
+    }
+
+    table td:nth-child(6) {
+      max-width: 200px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .login-overlay { position: fixed; inset: 0; width:100%; background: #f4f6fa; display:flex; align-items:center; justify-content:center; padding:0; z-index:9999; }
+    .login-box { width:100%; max-width:none; background:#fff; border:2px solid #FFA500; border-radius:0; padding:25px; box-shadow:0 2px 15px #ddd; }
+    .login-box h2 { color:#FFA500; text-align:center; margin-top:0; }
+    .login-box input { width:100%; box-sizing:border-box; padding:10px; margin:6px 0 12px; border:1px solid #ccc; border-radius:4px; }
+    #loginError { margin-top:8px; }
+    .user-bar { float:right; margin:8px; font-size:13px; }
+    .admin-section {
+      background: #fff0c2;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 10px 0;
+      border: 1px solid #FFA500;
+    }
+    input, select, textarea, button { max-width:100%; }
+    #tokenRemark { width:100%; min-height:78px; padding:9px; border:1px solid #FFA500; border-radius:4px; resize:vertical; font-family:Arial,sans-serif; }
+    @media (max-width: 600px) {
+      .form-row { align-items:center; }
+      .form-row label { flex:0 0 32%; width:32%; min-width:0; margin:0; }
+      .form-row input, .form-row select, .form-row textarea { flex:1 1 0; width:0; min-width:0; min-height:38px; }
+      .btn { min-height:42px; }
+      .table-holder { padding:8px; }
+      .user-bar { float:none; width:100%; margin:0; padding:8px 12px; text-align:right; }
+    }
+
+    html { font-size:12px !important; }
+    body, div, section, h1, h2, h3, h4, p, span, label, a,
+    input, select, option, textarea, button, table, thead, tbody, tr, th, td,
+    .tab, .btn, .reportTabBtn, .user-bar, .login-box, .section,
+    .form-row, .table-holder, .admin-section, .error, .success, .info {
+      font-family:Arial, sans-serif !important;
+      font-size:12px !important;
+      font-weight:700 !important;
+    }
+    h1, h2, h3, h4, h5, h6, .tab, .reportTabBtn, th {
+      font-size:12px !important;
+      font-weight:700 !important;
+    }
+    .section > h2 {
+      font-size:15px !important;
+      font-weight:700 !important;
+    }
+    #dailyOrdersReport, #dailyOrdersReport *,
+    #completedOrdersReport, #completedOrdersReport *,
+    #deliveryReport, #deliveryReport *,
+    #customerHistory, #customerHistory *,
+    #orderDateReport, #orderDateReport *,
+    #orderDateTotals, #orderDateTotals * {
+      font-size:11px !important;
+      font-weight:400 !important;
+    }
+    #itemsTable table {
+      width:100% !important;
+      max-width:100% !important;
+      table-layout:fixed !important;
+    }
+    #itemsTable th, #itemsTable td,
+    #itemsTable input, #itemsTable select, #itemsTable button {
+      font-size:11px !important;
+      font-weight:700 !important;
+    }
+    #itemsTable {
+      padding:0 !important;
+      margin-left:0 !important;
+      margin-right:0 !important;
+      background:transparent !important;
+      border-radius:0 !important;
+    }
+    #itemsTable th, #itemsTable td { padding:4px 2px !important; }
+    #itemsTable input, #itemsTable select { width:100% !important; min-width:0 !important; }
+    #itemsTable th:nth-child(1), #itemsTable td:nth-child(1) { width:16%; }
+    #itemsTable th:nth-child(2), #itemsTable td:nth-child(2) { width:31%; }
+    #itemsTable th:nth-child(3), #itemsTable td:nth-child(3) { width:17%; }
+    #itemsTable th:nth-child(4), #itemsTable td:nth-child(4) { width:14%; }
+    #itemsTable th:nth-child(5), #itemsTable td:nth-child(5) { width:17%; }
+    #itemsTable th:nth-child(6), #itemsTable td:nth-child(6) {
+      width:5% !important; min-width:0 !important; max-width:20px !important; padding:0 !important;
+    }
+    #itemsTable td:nth-child(6) .btn {
+      width:100% !important; min-width:0 !important; max-width:18px !important;
+      height:24px !important; min-height:24px !important;
+      padding:0 !important; margin:0 !important;
+    }
+    #itemsTable .remove-item-btn {
+      background:#dc3545 !important;
+      color:#fff !important;
+      border:0 !important;
+      font-size:16px !important;
+      line-height:1 !important;
+    }
+    #itemsTable .item-input-stack {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      width:100%;
+    }
+    #itemsTable .weight {
+      width:100% !important;
+    }
+    #orderBooking #phone {
+      width:0 !important;
+      min-width:0 !important;
+      flex:1 1 0 !important;
+    }
+    #orderBooking #phoneLoading,
+    #orderBooking #customerInfo {
+      flex:0 0 calc(68% - 12px) !important;
+      width:calc(68% - 12px) !important;
+      margin-left:calc(32% + 12px) !important;
+    }
+    #orderBooking #customerInfo:empty { display:none !important; }
+    .voice-token-panel { width:100%; padding:10px; margin:8px 0 12px; border:1px solid #FFA500; border-radius:7px; background:#fff8e8; }
+    .voice-token-actions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    #voiceTokenBtn { background:#1565c0 !important; }
+    #voiceItemsBtn { background:#087f5b !important; }
+    .voice-token-panel h3 { margin:0 0 8px; font-size:15px; }
+    #voiceTokenStopBtn { background:#666 !important; }
+    #voiceTokenStopBtn, #voiceItemsStopBtn { display:none !important; }
+    #tokenBackendStatus:empty, #voiceTokenStatus:empty, #voiceItemsStatus:empty { display:none !important; }
+    .simple-token-actions { display:flex; gap:6px; align-items:center; margin:4px 0 8px; }
+    .simple-token-actions .btn { flex:0 0 auto; margin:0; }
+    .simple-token-voice { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:8px 0 4px; }
+    .simple-token-voice .btn { width:100%; margin:0; min-height:46px; }
+    .simple-stop { width:100%; margin:0 0 6px !important; background:#666 !important; }
+    #guidedVoicePanel > summary { cursor:pointer; color:#555; }
+    #voiceTokenTranscript { width:100%; min-height:54px; margin-top:8px; padding:7px; white-space:pre-wrap; overflow-wrap:anywhere; background:#fff; border:1px solid #ddd; border-radius:5px; }
+    #tokenItemsTable { width:100% !important; padding:0 !important; margin:0 0 10px !important; background:transparent !important; overflow-x:hidden !important; }
+    #tokenItemsTable table { width:100% !important; table-layout:fixed !important; border-collapse:collapse !important; }
+    #tokenItemsTable th, #tokenItemsTable td { padding:4px 2px !important; font-size:11px !important; }
+    #tokenItemsTable input, #tokenItemsTable select { width:100% !important; min-width:0 !important; font-size:11px !important; }
+    #tokenItemsTable th:nth-child(1), #tokenItemsTable td:nth-child(1) { width:13%; }
+    #tokenItemsTable th:nth-child(2), #tokenItemsTable td:nth-child(2) { width:39%; }
+    #tokenItemsTable th:nth-child(3), #tokenItemsTable td:nth-child(3) { width:23%; }
+    #tokenItemsTable th:nth-child(4), #tokenItemsTable td:nth-child(4) { width:18%; }
+    #tokenItemsTable th:nth-child(5), #tokenItemsTable td:nth-child(5) { width:7%; padding:0 !important; }
+    #tokenItemsTable .item-input-stack { display:flex; flex-direction:column; gap:4px; width:100%; }
+    #tokenItemsTable .token-remove-item { width:100% !important; min-width:0 !important; height:24px !important; min-height:24px !important; margin:0 !important; padding:0 !important; background:#dc3545 !important; color:#fff !important; font-size:16px !important; }
+    .login-field {
+      display:grid !important;
+      grid-template-columns:minmax(90px, 32%) minmax(0, 1fr);
+      gap:8px;
+      align-items:center;
+      width:100%;
+      margin:8px 0 12px;
+    }
+    .login-field label, .login-field input {
+      display:block !important;
+      width:100% !important;
+      min-width:0 !important;
+      margin:0 !important;
+    }
+    .login-box, .login-box * {
+      font-size:15px !important;
+      font-weight:700 !important;
+    }
+
+    html, body, #logoSection, .tabs-grid, .section, .form-row,
+    .table-holder, .admin-section, #searchResult, #invoicePreview,
+    #tagPreview, #tokenList, [id$="Report"], [id$="Div"] {
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      overflow-x:hidden !important;
+    }
+    body, body > *, .top-header, #itemsTable, #itemsTable table {
+      box-sizing:border-box !important;
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+    }
+    img, svg, canvas, iframe, pre {
+      max-width:100% !important;
+    }
+    pre {
+      white-space:pre-wrap !important;
+      overflow-wrap:anywhere !important;
+    }
+    table {
+      width:100% !important;
+      max-width:100% !important;
+      table-layout:fixed !important;
+    }
+    th, td {
+      min-width:0 !important;
+      max-width:100% !important;
+      padding:4px 2px !important;
+      white-space:normal !important;
+      overflow-wrap:anywhere !important;
+      word-break:break-word !important;
+    }
+    input, select, textarea, button, .btn, .reportTabBtn {
+      min-width:0 !important;
+      max-width:100% !important;
+      white-space:normal !important;
+      overflow-wrap:anywhere !important;
+    }
+    td input, td select, td textarea, td button {
+      width:100% !important;
+    }
+    .login-box {
+      width:100% !important;
+      max-width:100% !important;
+    }
+    @media screen and (max-width: 900px) {
+      html, body {
+        position:relative !important;
+        left:0 !important;
+        right:0 !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        margin:0 !important;
+        overflow-x:clip !important;
+      }
+      body {
+        width:100% !important;
+        min-height:max(100vh, 177.7778vw) !important;
+        aspect-ratio:9 / 16 !important;
+      }
+      body > *, body * {
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+      body > * {
+        width:100% !important;
+        margin-left:0 !important;
+        margin-right:0 !important;
+      }
+      .top-header, .tabs-grid, .section, .table-holder,
+      .form-row, .admin-section, #itemsTable {
+        inline-size:100% !important;
+        max-inline-size:100% !important;
+      }
+      .login-overlay {
+        inset:0 !important;
+        width:auto !important;
+        max-width:none !important;
+      }
+      .section {
+        contain:inline-size;
+      }
+      .form-row {
+        display:flex !important;
+        flex-direction:row !important;
+        flex-wrap:wrap !important;
+        align-items:center !important;
+      }
+      .form-row > label {
+        width:32% !important;
+        flex:0 0 32% !important;
+      }
+      .form-row > input, .form-row > select, .form-row > textarea {
+        width:0 !important;
+        flex:1 1 0 !important;
+      }
+      .tabs-grid {
+        grid-template-columns:repeat(var(--tab-cols, 4), minmax(0, 1fr)) !important;
+      }
+      .tab {
+        width:auto !important;
+        padding:8px 1px !important;
+      }
+    }
+    @supports (height:100svh) {
+      @media screen and (max-width:900px) {
+        body { min-height:max(100svh, 177.7778vw) !important; }
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-box">
+      <h2>Laundry Bazaar Login</h2>
+      <div class="login-field"><label>Username</label><input id="loginUsername" autocomplete="username"></div>
+      <div class="login-field"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()"></div>
+      <button class="btn" style="width:100%;" onclick="doLogin()">Login</button>
+      <div id="loginError" class="error"></div>
+      <button class="btn" type="button" onclick="restoreSavedSession_()">Retry saved login / connection</button>
+    </div>
+  </div>
+  <div class="top-header">
+    <div id="logoSection"><img id="portalLogo" src="" class="logo" /></div>
+    <div id="userBar" class="user-bar" style="display:none;"></div>
+  </div>
+  <div class="tabs-grid">
+    <div class="tab active" id="tab_orderBooking" onclick="showTab('orderBooking', event)">Order</div>
+    <div class="tab" onclick="showTab('deliverySection', event)">Delivery</div>
+    <div class="tab" onclick="showTab('invoiceSection', event)">Invoices</div>
+    <div class="tab" onclick="showTab('tagSection', event)">Tags</div>
+    <div class="tab" onclick="showTab('reportSection', event)">Reports</div>
+    <div class="tab" onclick="showTab('logoUpload', event)">Logo</div>
+    <div class="tab" id="tab_token" onclick="showTab('tokenSection', event)">Token</div>
+    <div class="tab" onclick="showTab('adminSection', event)">Admin</div>
+  </div>
+
+  <!-- Order Booking -->
+  <div id="orderBooking" class="section active">
+    <h2>Order Booking</h2>
+    <div class="form-row">
+      <label>Order Number:</label>
+      <input type="text" id="orderNumber" readonly>
+      <button class="btn" onclick="addNewOrder()">Add New</button>
+    </div>
+    <div class="form-row">
+      <label>Order Date:</label>
+      <input type="date" id="orderDate" readonly>
+    </div>
+    <div class="form-row">
+      <label>Phone:</label>
+      <input type="text" id="phone" maxlength="10" pattern="[0-9]{10}" title="Enter exactly 10 digits" autocomplete="off" oninput="lookupCustomer()">
+      <span id="phoneLoading" class="loading" style="display:none;"></span>
+      <span id="customerInfo" class="info" style="margin-left: 8px;"></span>
+    </div>
+    <div class="form-row">
+      <label>Name:</label>
+      <input type="text" id="customerName" autocomplete="off" oninput="capitalizeInput(this)">
+    </div>
+    <div class="form-row">
+      <label>Delivery Date:</label>
+      <input type="date" id="deliveryDate">
+    </div>
+    <div class="table-holder" id="itemsTable"></div>
+    <button class="btn" id="addItemBtn" onclick="addItemRow()">Add Item</button>
+    <div class="form-row">
+      <label>Total Amount:</label>
+      <input type="text" id="totalAmount" readonly style="width: 120px;">
+    </div>
+    <div class="form-row">
+      <label>Total Quantity:</label>
+      <input type="text" id="totalQuantity" readonly style="width: 80px;">
+    </div>
+    <span id="orderError" class="error"></span>
+    <button class="btn" id="saveOrderBtn" onclick="saveOrder()">Save Order</button>
+    <button class="btn" id="whatsappInvoiceBtn" style="display:none;" onclick="saveAndSendInvoiceWhatsapp()">Open WhatsApp</button>
+    <button class="btn" id="printInvoiceBtn" onclick="printInvoice()">Print Invoice</button>
+    <button class="btn" id="printTagBtn" onclick="printTag()">Print Tag</button>
+    <button class="btn" id="remoteInvoiceBtn" onclick="remotePrintInvoiceFromOrder()">Remote Invoice</button>
+    <button class="btn" id="remoteTagBtn" onclick="remotePrintTagFromOrder()">Remote Tag</button>
+  </div>
+
+  <!-- Delivery Section -->
+  <div id="deliverySection" class="section">
+    <h2>Delivery</h2>
+    <div class="form-row">
+      <label>Order Number:</label>
+      <input type="text" id="searchOrderNumber" placeholder="Order Number">
+      <button class="btn" onclick="searchOrder()">Search</button>
+    </div>
+    <div id="searchResult"></div>
+  </div>
+
+  <!-- Invoice Section -->
+  <div id="invoiceSection" class="section">
+    <h2>Invoice Section</h2>
+    <label>Order Number:</label>
+    <input type="text" id="invoiceOrderNo" autocomplete="off">
+    <button class="btn" onclick="printInvoiceFromTab()">Generate Invoice</button>
+    <button class="btn" onclick="remotePrintInvoiceFromTab()">Remote Print Invoice</button>
+    <div id="invoicePreview"></div>
+    <hr>
+    <div style="margin-top:12px;">
+      <input type="text" id="statusOrderNo" placeholder="Order Number" autocomplete="off">
+      <button class="btn" onclick="checkOrderStatus()">Check Status</button>
+      <span id="orderStatusResult"></span>
+      <button class="btn" id="completeOrderBtn" style="display:none;" onclick="markOrderCompleted()">Mark as Completed</button>
+    </div>
+  </div>
+
+  <!-- Tag Section -->
+  <div id="tagSection" class="section">
+    <h2>Tag Printing</h2>
+    <label>Order Number:</label>
+    <input type="text" id="tagOrderNo" autocomplete="off">
+    <button class="btn" onclick="printTagFromTab()">Print Tag</button>
+    <button class="btn" onclick="remotePrintTagFromTab()">Remote Print Tag</button>
+    <div id="tagPreview"></div>
+  </div>
+
+  <!-- Reports Section -->
+  <div id="reportSection" class="section">
+    <h2>Reports</h2>
+    <div class="tab" style="background:#FFA500; color:#fff; border-radius: 8px 8px 0 0;">
+      <button class="reportTabBtn active" onclick="showReportTab(event, 'dailyOrdersDiv')">Pending Order Report</button>
+      <button class="reportTabBtn" onclick="showReportTab(event, 'completedOrdersDiv')">Completed Order Report</button>
+      <button class="reportTabBtn" onclick="showReportTab(event, 'deliveryReportDiv')">Delivery Report</button>
+      <button class="reportTabBtn" onclick="showReportTab(event, 'customerHistoryDiv')">Customer History</button>
+      <button class="reportTabBtn" onclick="showReportTab(event, 'orderDateReportDiv')">Order Date Report</button>
+    </div>
+
+    <div id="dailyOrdersDiv" class="reportTabContent" style="padding:12px; border: 1px solid #FFA500; border-top: none;">
+      <button class="btn" onclick="generateDailyOrders()">Show Pending Order Report</button>
+      <button class="btn" onclick="printDailyOrders()">Print / PDF</button>
+      <div id="dailyOrdersReport"></div>
+    </div>
+    <div id="completedOrdersDiv" class="reportTabContent" style="display:none; padding:12px; border: 1px solid #FFA500; border-top: none;">
+      <button class="btn" onclick="generateCompletedOrders()">Show Completed Order Report</button>
+      <button class="btn" onclick="printCompletedOrders()">Print / PDF</button>
+      <div id="completedOrdersReport"></div>
+    </div>
+
+    <div id="deliveryReportDiv" class="reportTabContent" style="display:none; padding:12px; border: 1px solid #FFA500; border-top: none;">
+      <label>From:</label><input type="date" id="deliveryStart">
+      <label>To:</label><input type="date" id="deliveryEnd">
+      <button class="btn" onclick="generateDeliveryReport()">Show Report</button>
+      <button class="btn" onclick="printDeliveryReport()">Print / PDF</button>
+      <div id="deliveryReport"></div>
+    </div>
+
+    <div id="customerHistoryDiv" class="reportTabContent" style="display:none; padding:12px; border: 1px solid #FFA500; border-top: none;">
+      <input type="text" id="custPhone" placeholder="Phone Number" autocomplete="off" style="margin-right: 12px;">
+      <button class="btn" onclick="generateCustomerHistory()">Show Report</button>
+      <button class="btn" onclick="printCustomerHistory()">Print / PDF</button>
+      <div id="customerHistory"></div>
+    </div>
+
+    <div id="orderDateReportDiv" class="reportTabContent" style="display:none; padding:12px; border: 1px solid #FFA500; border-top: none;">
+      <label>From:</label><input type="date" id="orderDateStart" style="margin-right:12px;">
+      <label>To:</label><input type="date" id="orderDateEnd" style="margin-right:12px;">
+      <button class="btn" onclick="generateOrderDateReport()">Show Report</button>
+      <button class="btn" onclick="printOrderDateReport()">Print / PDF</button>
+      <div id="orderDateReport"></div>
+      <div id="orderDateTotals" style="margin-top:10px; font-weight:bold;"></div>
+    </div>
+  </div>
+
+  <!-- Logo Upload Section -->
+  <div id="logoUpload" class="section">
+    <h2>Logo Upload</h2>
+    <input type="file" id="logoInput" accept="image/*">
+    <button class="btn" onclick="uploadLogo()">Upload Logo</button>
+  </div>
+
+  <!-- Token Section -->
+  <div id="tokenSection" class="section">
+    <h2>टोकन <small style="font-size:11px">v2.8 सरल</small></h2>
+    <details class="voice-token-panel" id="guidedVoicePanel" style="padding:6px;margin:4px 0">
+      <summary>वैकल्पिक सवाल-जवाब</summary>
+      <button class="btn" type="button" onclick="guidedVoice_.start()">🎤 शुरू करें</button>
+      <button class="btn" type="button" onclick="guidedVoice_.stop(true)">रोकें</button>
+      <label style="display:block;margin:8px 0"><input id="guidedAutoStart" type="checkbox" onchange="guidedVoice_.setAuto(this)" style="width:auto"> टोकन खुलते ही सवाल पूछें</label>
+      <div id="guidedQuestion" role="status" aria-live="polite">शुरू करें दबाएँ। पहले फोन नंबर पूछा जाएगा।</div>
+      <div id="guidedTranscript" style="overflow-wrap:anywhere;margin:8px 0"></div>
+      <input id="guidedAnswer" type="text" placeholder="जवाब लिखें" onkeydown="if(event.key==='Enter')guidedVoice_.submitTyped()">
+      <button class="btn" type="button" onclick="guidedVoice_.submitTyped()">भेजें</button>
+    </details>
+    <div id="tokenBackendStatus" class="info" role="status"></div>
+    <div class="form-row"><label>टोकन नंबर:</label><input id="tokenNumber" readonly></div>
+    <div class="simple-token-actions"><button class="btn" id="newTokenBtn" type="button" onclick="refreshToken_()">नया टोकन</button><button class="btn" id="refreshTokenBtn" type="button" onclick="refreshToken_()">रिफ्रेश</button></div>
+    <div class="form-row"><label>टोकन तारीख:</label><input type="date" id="tokenDate"></div>
+    <div class="form-row"><label>फोन:</label><input type="text" id="tokenPhone" maxlength="10" oninput="lookupTokenCustomer()"></div>
+    <div class="form-row"><label>नाम:</label><input type="text" id="tokenCustomerName" oninput="capitalizeInput(this)"></div>
+    <div class="form-row"><label>डिलीवरी तारीख:</label><input type="date" id="tokenDeliveryDate"></div>
+    <div id="compactVoiceToolbar" class="simple-token-voice">
+      <div id="customerVoicePanel">
+        <button class="btn" id="voiceTokenBtn" type="button" onclick="startVoiceToken('details')">🎤 ग्राहक विवरण</button>
+        <button class="btn" id="voiceTokenStopBtn" type="button" onclick="stopVoiceToken()" disabled style="padding:4px 8px;margin:2px 0">Stop</button>
+      </div>
+      <div id="itemsVoicePanel">
+        <button class="btn" id="voiceItemsBtn" type="button" onclick="startVoiceToken('items')">🎤 आइटम</button>
+        <button class="btn" id="voiceItemsStopBtn" type="button" onclick="stopVoiceToken()" disabled style="padding:4px 8px;margin:2px 0">Stop</button>
+      </div>
+    </div>
+    <button class="btn simple-stop" type="button" onclick="stopVoiceToken()">■ वॉइस रोकें</button>
+    <div style="font-size:12px;overflow-wrap:anywhere"><span id="voiceTokenStatus" class="info"></span> <span id="voiceItemsStatus" class="info"></span></div>
+    <details style="margin:3px 0"><summary>सुनी हुई बात / Transcript</summary><div id="voiceTokenTranscript" style="overflow-wrap:anywhere"></div><div id="voiceItemsTranscript" style="overflow-wrap:anywhere"></div></details>
+    <div id="tokenItemsTable" class="table-holder"></div>
+    <button class="btn" id="tokenAddItemBtn" type="button" onclick="addTokenItemRow()">आइटम जोड़ें</button>
+    <div class="form-row"><label>कुल मात्रा:</label><input type="text" id="tokenQuantity" readonly value="0"></div>
+    <div class="form-row"><label>टिप्पणी:</label><textarea id="tokenRemark" rows="2" placeholder="टिप्पणी"></textarea></div>
+
+    <button class="btn" id="saveTokenBtn" onclick="saveTokenBooking()">टोकन सेव करें</button>
+    <button class="btn" id="refreshTokensBtn" onclick="loadTokens()">सूची रिफ्रेश करें</button>
+    <div id="tokenError" class="error"></div>
+    <div id="tokenTableArea">
+      <h3 style="margin:16px 0 8px; font-size:15px;">Token Details</h3>
+      <div id="tokenList" class="table-holder"><div class="info">Open the Token tab to load token details.</div></div>
+    </div>
+  </div>
+
+  <!-- Admin Section -->
+  <div id="adminSection" class="section">
+    <h2>Admin Functions</h2>
+    <div class="admin-section">
+      <h3>Daily Email Reports</h3>
+      <button class="btn" onclick="manualSendDailyReport()">Send Test Daily Report</button>
+      <button class="btn" onclick="createEmailTrigger()">Setup Auto Email (4 AM Daily)</button>
+      <button class="btn" onclick="checkEmailTriggers()">Check Email Triggers</button>
+      <button class="btn" onclick="testSystem()">Test System</button>
+      <div id="adminResult" style="margin-top: 10px;"></div>
+      <hr>
+      <h3>Telegram Bot</h3>
+      <div class="form-row"><label>Bot Token:</label><input id="telegramBotToken" type="text" style="min-width:320px;"></div>
+      <div class="form-row"><label>Chat ID:</label><input id="telegramChatId" type="text"></div>
+      <button class="btn" onclick="saveTelegram()">Save Telegram Settings</button>
+      <button class="btn" onclick="testTelegramBot()">Send Test Message</button>
+      <div id="telegramResult"></div>
+    </div>
+  </div>
+
+  <script>
+// This page runs directly on GitHub Pages; only data requests go to Apps Script.
+window.LB_API_URL = 'https://script.google.com/macros/s/AKfycbyxShdKdI86YQoRsjIbZxp7e4TkbVp1AV5oXu5EkJqUHl69FfA3CqS9CzUmoMjRX9hS/exec';
+(function(){
+  // Preserve the native bridge if this HTML is served by Apps Script itself.
+  if(window.google && window.google.script && window.google.script.run)return;
+  function runner(success, failure, userObject){
+    return new Proxy({}, {get:function(_, name){
+      if(name === 'withSuccessHandler') return function(fn){return runner(fn,failure,userObject);};
+      if(name === 'withFailureHandler') return function(fn){return runner(success,fn,userObject);};
+      if(name === 'withUserObject') return function(value){return runner(success,failure,value);};
+      if(name === 'then') return undefined;
+      return function(){
+        var args=Array.prototype.slice.call(arguments);
+        var stage='network';
+        fetch(window.LB_API_URL, {
+          method:'POST', redirect:'follow', credentials:'omit',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify({api:'laundry-bazaar-v1',method:name,args:args})
+        }).then(async function(response){
+          stage='response';
+          if(!response.ok) throw new Error('API HTTP '+response.status+'. Check the Apps Script deployment.');
+          var text=await response.text(), data;
+          try{data=JSON.parse(text);}catch(_){throw new Error('Backend is not ready. Add GitHubAPI.gs and deploy a New version of the same web app with anonymous web access.');}
+          if(!data || typeof data.ok !== 'boolean') throw new Error('Unexpected backend response.');
+          if(!data.ok) throw new Error(data.error || 'Request failed.');
+          stage='callback';
+          if(success) success(data.result,userObject);
+        }).catch(function(error){
+          if(stage==='network') error=new Error('Network/access failure calling '+String(name)+'. Check backend connection. No automatic retry was made.');
+          else if(stage==='callback') error=new Error('Backend replied successfully, but the page failed to display '+String(name)+': '+error.message+'. If saving, check records before retrying.');
+          if(failure) failure(error,userObject);else alert(error.message);
+        });
+      };
+    }});
+  }
+  window.google={script:{run:runner(null,null,null)}};
+})();
+</script>
+
+<script>
+    function safeDisplayHtml_(html){
+      var template=document.createElement('template');template.innerHTML=String(html||'');
+      template.content.querySelectorAll('script,iframe,object,embed,base,meta,link,form').forEach(function(el){el.remove();});
+      template.content.querySelectorAll('*').forEach(function(el){
+        Array.from(el.attributes).forEach(function(a){
+          if(/^on/i.test(a.name)||a.name==='srcdoc'||(/^(href|src|action|formaction|xlink:href)$/i.test(a.name)&&/^\s*(?:javascript:|vbscript:|data:text\/html)/i.test(a.value)))el.removeAttribute(a.name);
+        });
+      });return template.innerHTML;
+    }
+    function bookingRequestId_(kind,obj){
+      var key='lbPending_'+kind+'_'+(currentUser&&currentUser.username||''),old;
+      var copy=JSON.parse(JSON.stringify(obj));delete copy.requestId;delete copy.orderNumber;delete copy.tokenNumber;
+      var fingerprint=JSON.stringify(copy);
+      try{old=JSON.parse(localStorage.getItem(key)||'null');}catch(e){}
+      if(old){if(old.fingerprint!==fingerprint)throw new Error('Previous save is unconfirmed. Restore its details and retry, or check records before clearing the pending request.');return old.id;}
+      var id=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2)+'_'+Math.random().toString(36).slice(2);
+      localStorage.setItem(key,JSON.stringify({id:id,fingerprint:fingerprint}));return id;
+    }
+    function clearBookingRequest_(kind){localStorage.removeItem('lbPending_'+kind+'_'+(currentUser&&currentUser.username||''));}
+    function capitalizeWords(text) {
+      if (!text || text.trim() === '') return '';
+      return text.toString()
+        .toLowerCase()
+        .split(' ')
+        .map(function(word){ return word.charAt(0).toUpperCase() + word.slice(1); })
+        .join(' ')
+        .trim();
+    }
+
+    function capitalizeInput(inputElement) {
+      const cursorPosition = inputElement.selectionStart;
+      const originalValue = inputElement.value;
+      inputElement.value = capitalizeWords(originalValue);
+      inputElement.setSelectionRange(cursorPosition, cursorPosition);
+    }
+
+    function showTab(tabId, evt) {
+      if(tabId!=='tokenSection')stopVoiceToken();
+      document.querySelectorAll('.section').forEach(function(div){ div.classList.remove('active'); });
+      document.querySelectorAll('.tab').forEach(function(tab){ tab.classList.remove('active'); });
+      const section = document.getElementById(tabId);
+      if (!section) return;
+      section.classList.add('active');
+      if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+      } else {
+        document.querySelectorAll('.tab').forEach(function(t){
+          if (t.getAttribute('onclick') && t.getAttribute('onclick').indexOf(tabId) !== -1) t.classList.add('active');
+        });
+      }
+      if (tabId === 'tokenSection' && getActiveSessionToken() && currentUser) {
+        loadTokens();
+        if(typeof guidedVoice_!=='undefined')guidedVoice_.maybeAuto();
+      }
+    }
+
+    function showReportTab(evt, tabId) {
+      document.querySelectorAll('.reportTabContent').forEach(function(div){ div.style.display = 'none'; });
+      document.querySelectorAll('.reportTabBtn').forEach(function(btn){ btn.classList.remove('active'); });
+      document.getElementById(tabId).style.display = 'block';
+      evt.currentTarget.classList.add('active');
+    }
+
+    let serviceOptions = [];
+    let tokenServicesReady_ = false;
+    let lookupTimeout = null;
+
+    let sessionToken = localStorage.getItem('lbSession') || '';
+    let currentUser = null;
+    let sourceTokenNumber = '';
+    let voiceTokenRecognition = null;
+    let voiceTokenConfirmRecognition = null;
+
+    window.onload = function() {restoreSavedSession_();};
+    function restoreSavedSession_() {
+      sessionToken=localStorage.getItem('lbSession')||'';
+      if (sessionToken) {
+        document.getElementById('loginError').textContent='Checking saved login with backend…';
+        google.script.run
+          .withSuccessHandler(function(res){
+            if (res && res.success) {
+              activateSession({token:sessionToken, username:res.username, role:res.role});
+            } else {
+              localStorage.removeItem('lbSession');
+              sessionToken='';
+              document.getElementById('loginError').textContent='Saved session is no longer valid. Please login.';
+              document.getElementById('loginUsername').focus();
+            }
+          })
+          .withFailureHandler(function(e){
+            // A network/deployment failure is not evidence that the session is invalid.
+            document.getElementById('loginError').textContent='Cannot verify saved login: '+(e.message||e)+'. Use Retry saved login / connection.';
+            document.getElementById('loginUsername').focus();
+          })
+          .getSession(sessionToken);
+      } else {
+        document.getElementById('loginUsername').focus();
+      }
+    }
+
+    function getActiveSessionToken() {
+      var stored = localStorage.getItem('lbSession') || '';
+      if (stored) sessionToken = stored;
+      return sessionToken || '';
+    }
+
+    function activateSession(res) {
+      var normalizedRole = String(res.role||'').trim().toLowerCase();
+      sessionToken = res.token || sessionToken;
+      currentUser = {username:res.username, role:normalizedRole};
+      localStorage.setItem('lbSession', sessionToken);
+      document.getElementById('loginOverlay').style.display='none';
+      var userBar = document.getElementById('userBar');
+      userBar.style.display='flex';
+      userBar.style.flexDirection='column';
+      userBar.style.alignItems='flex-end';
+      userBar.style.justifyContent='center';
+      userBar.textContent='';
+      var logoutButton = document.createElement('button');
+      logoutButton.type='button';
+      logoutButton.className='btn logout-btn';
+      logoutButton.textContent='Logout';
+      logoutButton.onclick=doLogout;
+      userBar.appendChild(logoutButton);
+      applyRole(normalizedRole);
+      google.script.run.withSuccessHandler(setLogo).getLogo(getActiveSessionToken());
+      loadTokenServices_();
+      if(normalizedRole==='admin'||normalizedRole==='manager')addNewOrder();
+      if(normalizedRole==='admin') loadTelegramSettings();
+      if(normalizedRole==='delivery' || normalizedRole==='admin' || normalizedRole==='manager') { newToken(); loadTokens(); }
+    }
+
+    function doLogin() {
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value;
+      sessionToken = '';
+      document.getElementById('loginError').textContent = '';
+      google.script.run.withSuccessHandler(function(res){
+        if(!res || !res.success){ document.getElementById('loginError').textContent = (res&&res.message)||'Login failed'; return; }
+        activateSession(res);
+      }).withFailureHandler(function(e){ document.getElementById('loginError').textContent = 'Login error: '+e; }).login(u,p);
+    }
+
+    function showLoginScreen(){
+      var userBar = document.getElementById('userBar');
+      userBar.style.display='none';
+      userBar.textContent='';
+      document.getElementById('loginPassword').value='';
+      document.getElementById('loginError').textContent='';
+      document.getElementById('loginOverlay').style.display='flex';
+      setTimeout(function(){ document.getElementById('loginUsername').focus(); }, 0);
+    }
+
+    function doLogout(){
+      stopVoiceToken();
+      var t = getActiveSessionToken();
+      localStorage.removeItem('lbSession');
+      sessionToken = '';
+      currentUser = null;
+      showLoginScreen();
+      if(t){
+        google.script.run
+          .withSuccessHandler(function(){})
+          .withFailureHandler(function(){})
+          .logout(t);
+      }
+    }
+
+    function applyRole(role){
+      role = String(role||'').trim().toLowerCase();
+      const map = {
+        orderBooking:['admin','manager'],
+        deliverySection:['admin','manager','delivery'],
+        invoiceSection:['admin','manager'],
+        tagSection:['admin','manager'],
+        reportSection:['admin','manager'],
+        logoUpload:['admin'],
+        tokenSection:['admin','manager','delivery'],
+        adminSection:['admin']
+      };
+      document.querySelectorAll('.tab').forEach(function(t){ t.style.display=''; });
+      Object.keys(map).forEach(function(id){
+        var el = document.getElementById(id);
+        if(el){
+          var tab = document.querySelector('[onclick*="' + id + '"]');
+          if(map[id].indexOf(role) < 0){
+            if(el) el.style.display='none';
+            if(tab) tab.style.display='none';
+          }
+        }
+      });
+      var tabsGrid = document.querySelector('.tabs-grid');
+      if(tabsGrid){
+        var visibleTabs = Array.from(tabsGrid.children).filter(function(t){
+          return t.classList.contains('tab') && t.style.display!=='none';
+        }).length;
+        var cols = visibleTabs>=7?4:(visibleTabs>=5?3:Math.max(1,Math.min(4,visibleTabs)));
+        tabsGrid.style.setProperty('--tab-cols', cols);
+      }
+      var tokenTableArea = document.getElementById('tokenTableArea');
+      var refreshTokensBtn = document.getElementById('refreshTokensBtn');
+      if(tokenTableArea) tokenTableArea.style.display='block';
+      if(refreshTokensBtn) refreshTokensBtn.style.display='inline-block';
+      if(role==='delivery'){ showTab('tokenSection'); }
+    }
+
+    function lookupTokenCustomer(){
+      const p = document.getElementById('tokenPhone').value.trim();
+      if(/^\d{10}$/.test(p)){
+        const nameAtRequest=document.getElementById('tokenCustomerName').value;
+        google.script.run.withSuccessHandler(function(n){
+          if(n && hindiFormText_(n) && document.getElementById('tokenPhone').value.trim()===p && document.getElementById('tokenCustomerName').value===nameAtRequest) document.getElementById('tokenCustomerName').value=n;
+        }).getCustomerByPhone(p, getActiveSessionToken());
+      }
+    }
+
+    var tokenLoadGeneration_=0;
+    function refreshToken_(){
+      if(localStorage.getItem('lbPending_token_'+(currentUser&&currentUser.username||''))){
+        alert('पिछले Save की पुष्टि बाकी है। पहले token list और records जाँचें; Refresh से duplicate protection नहीं हटेगी।');return;
+      }
+      newToken();
+    }
+    function newToken(){
+      if(!currentUser||!getActiveSessionToken()){
+        document.getElementById('tokenError').textContent='Login must be verified by the backend before a token number can be requested.';return;
+      }
+      stopVoiceToken();
+      var generation=++tokenLoadGeneration_;
+      tokenVoicePending_=null;tokenVoiceDraft_=null;
+      ['tokenNumber','tokenCustomerName','tokenPhone','tokenRemark'].forEach(function(id){document.getElementById(id).value='';});
+      ['tokenDate','tokenDeliveryDate'].forEach(function(id){document.getElementById(id).value=new Date().toISOString().slice(0,10);});
+      renderTokenItemsTable([],true);
+      document.getElementById('saveTokenBtn').disabled=true;
+      if(typeof guidedVoice_!=='undefined'){guidedVoice_.entryPending=null;guidedVoice_.acceptEntryOnce=false;}
+      if(typeof guidedVoice_!=='undefined')guidedVoice_.loadingToken=true;
+      document.getElementById('tokenError').textContent='Requesting token number from backend…';
+      google.script.run.withSuccessHandler(function(n){
+        if(generation!==tokenLoadGeneration_)return;
+        tokenVoicePending_=null;tokenVoiceDraft_=null;tokenVoiceActive_=false;
+        document.getElementById('tokenNumber').value = n;
+        document.getElementById('tokenDate').value = new Date().toISOString().slice(0,10);
+        document.getElementById('tokenCustomerName').value = '';
+        document.getElementById('tokenPhone').value = '';
+        document.getElementById('tokenDeliveryDate').value = new Date().toISOString().slice(0,10);
+        document.getElementById('tokenQuantity').value = 0;
+        document.getElementById('tokenRemark').value = '';
+        renderTokenItemsTable([],true);
+        document.getElementById('saveTokenBtn').disabled = false;
+        document.getElementById('tokenError').textContent = '';
+        if(typeof guidedVoice_!=='undefined'){guidedVoice_.loadingToken=false;guidedVoice_.maybeAuto();}
+      }).withFailureHandler(function(e){
+        if(generation!==tokenLoadGeneration_)return;
+        if(typeof guidedVoice_!=='undefined')guidedVoice_.loadingToken=false;
+        document.getElementById('tokenError').textContent = 'Unable to get new token number: '+(e.message||e);
+      }).getNewTokenNumber(getActiveSessionToken());
+    }
+
+    function saveTokenBooking(){
+      if(document.getElementById('saveTokenBtn').disabled)return;
+      stopVoiceToken();
+      const items = getTokenItemsForSave_();
+      const obj = {
+        tokenNumber: document.getElementById('tokenNumber').value,
+        tokenDate: document.getElementById('tokenDate').value,
+        customerName: document.getElementById('tokenCustomerName').value.trim(),
+        phone: document.getElementById('tokenPhone').value.trim(),
+        quantity: items.reduce(function(sum,it){return sum+Number(it.qty||0);},0),
+        deliveryDate: document.getElementById('tokenDeliveryDate').value,
+        totalAmount: 0, // Compatibility with the existing token backend; pricing starts in Book Order.
+        items: items,
+        remark: document.getElementById('tokenRemark').value.trim()
+      };
+      if(!obj.customerName) return alert('Customer Name required.');
+      if(!hindiFormText_(obj.customerName)||items.some(function(it){return !hindiFormText_(it.item);})||(obj.remark&&!hindiFormText_(obj.remark)))return alert('नाम, आइटम और रिमार्क हिन्दी में भरें। Service codes नहीं बदलें।');
+      if(!/^\d{10}$/.test(obj.phone)) return alert('Phone must be exactly 10 digits.');
+      if(!obj.deliveryDate) return alert('Delivery Date required.');
+      if(!items.length || items.some(function(it){ return !it.service || !it.item || !Number.isInteger(Number(it.qty)) || Number(it.qty)<=0 || (/^(KG|KG WF)$/.test(it.service) && !(Number(it.weight)>0)); })) {
+        return alert('Enter valid Service, Item and Quantity; enter Weight for KG items.');
+      }
+
+      try{obj.requestId=bookingRequestId_('token',obj);}catch(e){alert(e.message);return;}
+      document.getElementById('saveTokenBtn').disabled = true;
+      google.script.run
+        .withSuccessHandler(function(n){
+          clearBookingRequest_('token');
+          document.getElementById('tokenError').textContent = 'Token Saved: '+n+' | Status: Pending';
+          if(typeof guidedVoice_!=='undefined')guidedVoice_.el('guidedQuestion').textContent='Token '+n+' save हो गया। नया customer हो तो शुरू करें दबाएँ।';
+          document.getElementById('tokenError').className = 'success';
+          loadTokens();
+          newToken();
+        })
+        .withFailureHandler(function(e){
+          document.getElementById('tokenError').textContent = 'Error: '+(e.message||e);
+          if(typeof guidedVoice_!=='undefined')guidedVoice_.el('guidedQuestion').textContent='Save की पुष्टि नहीं हुई: '+(e.message||e)+'. दोबारा save करने से पहले token list जाँचें।';
+          document.getElementById('tokenError').className = 'error';
+          document.getElementById('saveTokenBtn').disabled = false;
+        })
+        .saveToken(obj, getActiveSessionToken());
+    }
+
+    function getTokenItems(){
+      return Array.from(document.querySelectorAll('.tokenItemRow')).map(function(row){
+        return {
+          service: row.querySelector('.token-service').value,
+          item: row.querySelector('.token-item').value.trim(),
+          rate: row.querySelector('.token-rate').value===''?'':Number(row.querySelector('.token-rate').value),
+          locked: row.dataset.locked==='true',
+          qty: Number(row.querySelector('.token-qty').value)||0,
+          weight: Number(row.querySelector('.token-weight').value)||0,
+          amt: 0
+        };
+      });
+    }
+
+    function hindiFormText_(value){return /[\u0900-\u097f]/.test(String(value||''))&&!/[a-z]/i.test(String(value||''));}
+    function hindiItem_(value){
+      var words={shirt:'शर्ट',tshirt:'टीशर्ट',pant:'पैंट',trouser:'पतलून',jeans:'जींस',coat:'कोट',full:'फुल',half:'हाफ',suit:'सूट',pcs:'पीस',jacket:'जैकेट',leather:'चमड़ा',normal:'सामान्य',sweater:'स्वेटर',cardigan:'कार्डिगन',kurta:'कुर्ता',plain:'सादा',fancy:'फैंसी',silk:'रेशम',salwar:'सलवार',saree:'साड़ी',cotton:'सूती',work:'वर्क',short:'छोटी',dress:'ड्रेस',knee:'घुटने',length:'लंबाई',maxi:'मैक्सी',long:'लंबी',delicate:'नाजुक',lehenga:'लहंगा',lining:'अस्तर',single:'सिंगल',double:'डबल',shawl:'शॉल',blanket:'कंबल',heavy:'भारी',towel:'तौलिया',large:'बड़ा',hand:'हाथ',face:'चेहरा',bedsheet:'चादर',quilt:'रजाई',carpet:'कालीन',sqft:'वर्ग फुट',curtains:'पर्दे',sofa:'सोफा',cover:'कवर',medium:'मध्यम',small:'छोटा',sports:'स्पोर्ट्स',canvas:'कैनवास',suede:'सुएड',shoe:'जूता',shoes:'जूते',blazer:'ब्लेजर'};
+      return String(value||'').replace(/[a-z]+/gi,function(w){return words[w.toLowerCase()]||w;});
+    }
+    function renderTokenItemsTable(items, allowLockedChanges){
+      items = Array.isArray(items) ? items : [{service:'',item:'',rate:'',qty:1,weight:'',amt:0}];
+      if(!allowLockedChanges)getTokenItems().forEach(function(old,i){if(old.locked)items[i]=old;});
+      var html = '<table style="table-layout:fixed;width:100%"><colgroup><col style="width:13%"><col style="width:39%"><col style="width:23%"><col style="width:18%"><col style="width:7%"></colgroup><thead><tr><th>Qty</th><th>Item</th><th>Service</th><th>Rate ₹</th><th></th></tr></thead><tbody>';
+      items.forEach(function(it, i){
+        it.item=hindiItem_(it.item);
+        var options = serviceOptions.filter(function(opt){return !/^(BLK|WF)$/i.test(String(opt).trim());}).map(function(opt){
+          return '<option value="'+escapeHtml(opt)+'" '+(String(it.service||'').trim().toLowerCase()===String(opt||'').trim().toLowerCase()?'selected':'')+'>'+escapeHtml(opt)+'</option>';
+        }).join('');
+        html += '<tr class="tokenItemRow" data-locked="'+!!it.locked+'">'+
+          '<td><input class="token-qty" type="number" min="1" step="1" value="'+(it.qty == null ? 1 : Number(it.qty))+'" oninput="calcTokenItemRow(this)"></td>'+
+          '<td><div class="item-input-stack"><input class="token-item" value="'+escapeHtml(it.item||'')+'" oninput="capitalizeInput(this)"><input class="token-weight" type="number" min="0" step="0.01" placeholder="Weight" value="'+escapeHtml(it.weight||'')+'" oninput="calcTokenItemRow(this)"><button type="button" class="btn" onclick="guidedVoice_.correctItem('+i+')">🎤 सुधारें '+(i+1)+'</button></div></td>'+
+          '<td><select class="token-service" onchange="handleTokenServiceChange(this)"><option value="">Select</option>'+options+'</select></td>'+
+          '<td><input class="token-rate" type="number" min="0" step="1" placeholder="Rate" aria-label="Rate" value="'+escapeHtml(it.rate==null?'':it.rate)+'" style="width:100%;min-width:0"></td>'+
+          '<td><button class="btn token-remove-item" type="button" aria-label="Remove item '+(i+1)+'" title="Remove item" onclick="removeTokenItemRow('+i+')">&times;</button></td></tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('tokenItemsTable').innerHTML = html;
+      document.querySelectorAll('.token-service').forEach(handleTokenServiceChange);
+      document.querySelectorAll('.tokenItemRow').forEach(function(row,i){
+        var edit=row.querySelector('.item-input-stack button');edit.style.cssText='padding:3px;margin:0;font-size:11px;min-width:0';
+        var actions=document.createElement('div');actions.style.cssText='display:flex;gap:3px;flex-wrap:wrap';edit.parentNode.appendChild(actions);actions.appendChild(edit);
+        var lock=document.createElement('button');lock.type='button';lock.className='btn';lock.textContent=items[i].locked?'Unlock':'Lock करें';lock.style.cssText=edit.style.cssText;lock.onclick=function(){toggleTokenItemLock_(i);};actions.appendChild(lock);
+        if(items[i].locked)row.querySelectorAll('input,select,button').forEach(function(el){if(el!==lock)el.disabled=true;});
+      });
+      calcTokenTotals();
+    }
+
+    function toggleTokenItemLock_(index){
+      stopVoiceToken();var rows=getTokenItems(),row=rows[index];if(!row)return;
+      if(!row.locked&&(!row.item||!row.service||!Number.isInteger(row.qty)||row.qty<=0||(/^(KG|KG WF)$/.test(row.service)&&!(row.weight>0))||(row.rate!==''&&(!Number.isFinite(row.rate)||row.rate<0)))){alert('पहले सही item, quantity, service और जरूरत पर weight/rate भरें।');return;}
+      row.locked=!row.locked;renderTokenItemsTable(rows,true);tokenVoiceDraft_=null;
+    }
+
+    function addTokenItemRow(){
+      if(typeof guidedVoice_!=='undefined'&&guidedVoice_.active)guidedVoice_.stop(true);
+      var items = getTokenItems();
+      items.push({service:'',item:'',rate:'',qty:1,weight:'',amt:0});
+      renderTokenItemsTable(items);
+    }
+
+    function removeTokenItemRow(index){
+      if(tokenVoiceActive_||(typeof guidedVoice_!=='undefined'&&guidedVoice_.active))stopVoiceToken();
+      var items = getTokenItems();
+      if(!Number.isInteger(index)||index<0||index>=items.length)return;
+      if(items[index].locked){alert('पहले item Unlock करें।');return;}
+      items.splice(index, 1);
+      renderTokenItemsTable(items,true);
+    }
+
+    function handleTokenServiceChange(select){
+      var row = select.closest('tr');
+      if(!row) return;
+      var isKg = /^(KG|KG WF)$/.test(String(select.value||'').trim().toUpperCase());
+      var weight = row.querySelector('.token-weight');
+      weight.disabled = !isKg;
+      weight.style.display = isKg ? 'block' : 'none';
+      if(!isKg) weight.value = '';
+      calcTokenItemRow(select);
+    }
+
+    function calcTokenItemRow(el){
+      calcTokenTotals();
+    }
+
+    function calcTokenTotals(){
+      var qty = 0;
+      document.querySelectorAll('.tokenItemRow').forEach(function(row){
+        if(row.querySelector('.token-item').value.trim() || row.querySelector('.token-service').value) qty += Number(row.querySelector('.token-qty').value)||0;
+      });
+      document.getElementById('tokenQuantity').value = qty;
+    }
+
+    function voiceRecognitionClass_(){ 
+      return window.SpeechRecognition || window.webkitSpeechRecognition || null; 
+    }
+
+    function stopVoiceToken(){
+      if(typeof guidedVoice_!=='undefined'&&guidedVoice_.active)guidedVoice_.stop(false);
+      tokenVoiceEpoch_++;tokenVoiceContinuous_=false;
+      voiceButtons_(false);
+      voiceStatus_('Voice stopped.');
+      if(tokenVoiceActive_ && tokenVoiceLastParsed_)tokenVoicePending_=tokenVoiceLastParsed_.pending;
+      tokenVoiceActive_=false;tokenVoiceDraft_=null;
+      if(voiceTokenRecognition) try{ voiceTokenRecognition.abort(); } catch(e){}
+      if(voiceTokenConfirmRecognition) try{ voiceTokenConfirmRecognition.abort(); } catch(e){}
+      if(/LaundryBazaarAndroid/i.test(navigator.userAgent||'')) {
+        if(window.AndroidVoice && typeof window.AndroidVoice.stopRecognition === 'function') window.AndroidVoice.stopRecognition();
+      } else if(window.AndroidVoice && typeof window.AndroidVoice.stopRecognition === 'function') {
+        if(window.AndroidVoice && typeof window.AndroidVoice.stopRecognition === 'function') window.AndroidVoice.stopRecognition();
+      }
+      if(window.speechSynthesis) window.speechSynthesis.cancel();
+      voiceTokenRecognition = null;
+      voiceTokenConfirmRecognition = null;
+      document.getElementById('voiceTokenBtn').disabled = false;
+      document.getElementById('voiceTokenStopBtn').disabled = true;
+      document.getElementById('voiceTokenStatus').textContent = 'Voice stopped.';
+    }
+
+    function startVoiceToken(scope){
+      if(!currentUser||!getActiveSessionToken()){
+        document.getElementById('tokenError').textContent='Please login first. Voice entry requires a verified session.';return;
+      }
+      if(scope==='items'&&!tokenServicesReady_){
+        document.getElementById('tokenError').textContent='Services have not loaded from the backend. Tap Reload services and check the connection message.';return;
+      }
+      stopVoiceToken();
+      tokenVoiceScope_=scope||'details';tokenVoicePending_=null;
+      beginVoiceTokenDraft_();tokenVoiceContinuous_=true;voiceButtons_(true);
+      var epoch=tokenVoiceEpoch_;
+      voiceStatus_('Listening… Long pauses allowed. Tap Stop when finished.');
+      if(window.AndroidVoice && typeof window.AndroidVoice.startRecognition==='function'){
+        window.AndroidVoice.startRecognition('token');return;
+      }
+      var Recognition=voiceRecognitionClass_(),committed='';
+      if(!Recognition){window.onAndroidVoiceError('Speech recognition unavailable. Use the Android app.');return;}
+      function listen(){
+        if(!tokenVoiceActive_||epoch!==tokenVoiceEpoch_)return;
+        var recognition=new Recognition(),finalText='';
+        voiceTokenRecognition=recognition;
+        recognition.lang='hi-IN';recognition.interimResults=true;recognition.continuous=true;
+        recognition.onresult=function(event){
+          if(epoch!==tokenVoiceEpoch_||!tokenVoiceActive_)return;
+          var all='';finalText='';
+          for(var i=0;i<event.results.length;i++){
+            all+=event.results[i][0].transcript+' ';
+            if(event.results[i].isFinal)finalText+=event.results[i][0].transcript+' ';
+          }
+          applyVoiceTokenSpeech_((committed+' '+all).trim(),event.results[event.results.length-1].isFinal);
+        };
+        recognition.onerror=function(event){
+          if(epoch!==tokenVoiceEpoch_)return;
+          if(event.error!=='no-speech'&&event.error!=='aborted')window.onAndroidVoiceError('Microphone: '+event.error+'. Please retry.');
+        };
+        recognition.onend=function(){
+          if(epoch!==tokenVoiceEpoch_||!tokenVoiceActive_)return;
+          committed=(committed+' '+finalText).trim();
+          setTimeout(listen,400);
+        };
+        try{recognition.start();}catch(e){window.onAndroidVoiceError(e.message);}
+      }
+      listen();
+    }
+
+    function normalizeVoiceDigits_(text){
+      var devanagari = '०१२३४५६७८९';
+      text = String(text||'').replace(/[०-९]/g, function(d){ return String(devanagari.indexOf(d)); });
+      var map = {zero:'0',oh:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',das:'10',gyarah:'11',barah:'12','दस':'10','ग्यारह':'11','बारह':'12','पाँच':'5',shunya:'0',ek:'1',do:'2',teen:'3',char:'4',chaar:'4',panch:'5',che:'6',chhe:'6',saat:'7',aath:'8',nau:'9','शून्य':'0','एक':'1','दो':'2','तीन':'3','चार':'4','पांच':'5','छह':'6','सात':'7','आठ':'8','नौ':'9'};
+      return text.replace(/[A-Za-z\u0900-\u097F]+/g, function(w){ return Object.prototype.hasOwnProperty.call(map, w.toLowerCase()) ? map[w.toLowerCase()] : w; });
+    }
+
+    function normalizeVoiceAliases_(text){
+      var value = String(text||'').replace(/(\d)(?=kgs?\b)/gi,'$1 ').replace(/\bkg\s*-\s*gram\b/gi,'kg');
+      var aliases = [
+        // Recognizer may drop the K in "KG Fold"; only accept G before Fold.
+        [/\bg\s+fold\b/gi,'KG WF'],
+        [/\b(?:w|dablu|dabloo|dab[lw]oo|double\s*u)\s*\.?\s*(?:i|aai|ai|eye)\b|(?:डब्ल्यू|डब्लू|डबल्यू|डबलू|डबल यू|डब्ल्यु|डबल्यु)\s*(?:आई|आइ|ई)/gi,'WI'],
+        [/\bw\s*\.?\s*f\b|डब्ल्यू\s*एफ/gi,'WF'],
+        [/\b(?:wash|was|wosh)\s*(?:(?:and|n|&)\s*)?fold(?:ing)?\b|(?:वॉश|वाश|वॉस)\s*(?:(?:एंड|एण्ड|और|&)\s*)?फोल्ड/gi,'WF'],
+        [/\b(?:narso|narson|nurso)\b|नरसों|नरसो/gi,'narso'],
+        [/\b(?:parso|parson|barso|farso)\b|परसों|परसो/gi,'parso'],
+        // Map spoken washing + ironing instructions to the WI service code.
+        [/\b(?:wash|was|wosh)\s*(?:(?:and|n|&)\s*)?(?:iron(?:ing)?|press(?:ing)?)\b|\bwashiron\b/gi,'WI'],
+        [/\b(?:dho\s*(?:ke|kar)|dhoke|dhokar)\s*(?:(?:phir|fir)\s*)?(?:press|pres|iron|istri|istree)(?:\s+(?:karna|karo|kar\s*do|kar\s*dena))?\b/gi,'WI'],
+        [/(?:धो\s*(?:के|कर(?:के)?)|धुलाई\s*(?:करके|कर\s*के|के\s*बाद))\s*(?:फिर\s*)?(?:प्रेस|प्रैस|आयरन|इस्त्री|इस्तरी)\s*(?:करना|करो|कर\s*दो|कर\s*देना)?/g,'WI'],
+        [/(?:वॉश|वाश|वास)\s*(?:(?:एंड|और|एण्ड|&)\s*)?(?:आयरन|प्रेस|प्रैस|इस्त्री)/g,'WI'],
+        // Standalone shortcuts come AFTER the complete washing combinations.
+        [/\bwash\b|वॉश|वाश/gi,'WI'],
+        [/\bfold\b|फोल्ड/gi,'WF'],
+        [/\b(?:d\s*c|dry\s*clean(?:ing)?)\b|डी\s*सी|ड्राई\s*क्लीन(?:िंग)?/gi,'DC'],
+        // Washing combinations above must take precedence over standalone ironing.
+        [/\bi\s*\.?\s*r\b|आई\s*आर/gi,'IR'],
+        [/\b(?:(?:only|just|khali|sirf)\s+)?(?:iron(?:ing)?|press(?:ing)?|istri|istree)(?:\s+(?:press|iron(?:ing)?))?(?:\s+(?:karna|karo|kar\s*do))?(?:\s+hai)?\b/gi,'IR'],
+        [/(?:(?:खाली|सिर्फ|केवल)\s*)?(?:आयरनिंग|आयरन|प्रेस|प्रैस|इस्त्री|इस्तरी)(?:\s*(?:प्रेस|आयरनिंग|आयरन))?(?:\s*(?:करना|करो|कर\s*दो))?(?:\s*है)?/g,'IR'],
+        [/\b(?:k\s*\.?\s*g\.?|kgs?|(?:kay|key|ke)\s*(?:gee|jee|ji)|keji|kilo(?:\s*gram)?s?)\b|के\s*\.?\s*(?:जी|जि|गी)\.?|केज|किलो(?:\s*ग्राम)?/gi,'kg'],
+        [/\b(?:s\s*h|shoe[s]?\s*clean(?:ing)?)\b|एस\s*एच|शू(?:ज़|ज)?\s*क्लीनिंग|जूते\s*की\s*सफाई/gi,'SH'],
+        [/\b(?:sooj|jute|joote|joota|shoes?)\b|जूते|जूता|जुते|शूज़|शूज|शू/gi,'shoe'],
+        [/\bb\s*l\s*k\b|बी\s*एल\s*के/gi,'BLK'],
+        [/\b(?:sart|shart|shert)\b|सर्ट|शर्ट/gi,'shirt'],
+        [/\b(?:paint|pent|paant)\b|पेंट|पैंट/gi,'pant'],
+        [/\b(?:jin|jins|jean)\b|जीन्स|जींस|जीन/gi,'jeans'],
+        [/\b(?:blezer|blazer)\b|ब्लेजर/gi,'blazer'],
+        [/\b(?:blankit|blanket)\b|ब्लैंकेट|ब्लेंकेट|ब्लैन्केट|कंबल/gi,'blanket'],
+        [/\b(?:rupya|rupye|rupaye|rupees?)\b|रुपया|रुपये/gi,'rupees'],
+        [/\b(?:ret|rait)\b|रेट/gi,'rate'],
+        [/\b(?:fon|fone)\b|फ़ोन|फोन/gi,'phone'],
+        [/\b(?:mobail|mobyle)\b|मोबाइल/gi,'mobile']
+      ];
+      aliases.forEach(function(pair){ value = value.replace(pair[0], pair[1]); });
+      return value.replace(/\bWF\s+kg\b/gi,'KG WF').replace(/\b(?:kg\s+)?WF\b/gi,'KG WF').replace(/\s+/g,' ').trim();
+    }
+
+
+    function resolveVoiceService_(spoken, isKg){
+      var cleaned = normalizeVoiceAliases_(spoken).toLowerCase().replace(/\b(ki|ka|ke|me|mein|service|hai|hain)\b|की|का|के|में|सर्विस|हैं|है/g,' ').replace(/\s+/g,' ').trim();
+      cleaned=cleaned.replace(/[.,।!?]/g,' ').split(/\s+/).filter(function(word){return !/^(?:karna|karni|karo|chahiye|chahie|please|kar|do|कीजिए|करना|करनी|करो|चाहिए|कर|दो|करिये|करिए)$/.test(word);}).join(' ').trim();
+      var repeated=cleaned.toUpperCase().match(/KG WF|WI|DC|IR|SH|KG/g);
+      if(repeated&&repeated.join(' ')===cleaned.toUpperCase()&&repeated.every(function(c){return c===repeated[0];}))cleaned=repeated[0].toLowerCase();
+      if(/^(grams?|ग्राम)$/.test(cleaned))cleaned='kg';
+      var code = isKg ? 'KG' : /^(wi|wash iron|wash & iron)$/.test(cleaned) ? 'WI' : /^(wf|wash fold|kg wf)$/.test(cleaned) ? 'KG WF' : /^(dc|dry clean|dry cleaning)$/.test(cleaned) ? 'DC' : cleaned.toUpperCase();
+      if(code==='BLK')return '';
+      var exact=serviceOptions.find(function(opt){return String(opt).trim().toUpperCase()===code;});
+      if(exact)return exact;
+      return serviceOptions.find(function(opt){
+        var o = String(opt).trim().toUpperCase();
+        return o === code || (code === 'WI' && /WASH.*IRON/.test(o)) || (code === 'WF' && /WASH.*FOLD/.test(o)) || (code === 'DC' && /DRY.*CLEAN/.test(o)) || (code === 'IR' && /^(IRON(?:ING)?|PRESS(?:ING)?)$/.test(o));
+      }) || '';
+    }
+
+    function normalizeVoiceItem_(spoken){
+      // Normalize only the item field, never customer names or remarks.
+      var original = String(spoken||'').trim();
+      var text = original.toLowerCase().replace(/[-–/]/g,' ').replace(/\s+/g,' ').trim();
+      var words = [
+        ['टी शर्ट|टीशर्ट|t shirt|tshirts|tshirt','tshirt'],
+        ['कमीज़|कमीज|शर्ट|shirts|shirt','shirt'],
+        ['पैंट|पेंट|pant|pants|pent|paant','pant'],
+        ['पतलून|ट्राउजर|ट्राउज़र्स|trousers|trouser|पतलूनों','trouser'],
+        ['जींस|जीन्स|jeans','jeans'],
+        ['कोट|coats','coat'],['पूरा|पूरी|फुल|poora|pura','full'],['आधा|आधी|हाफ|aadha|adha','half'],
+        ['सूट|suits','suit'],['पीस|पीसेस|टुकड़े|pieces|piece|pcs','pcs'],
+        ['जैकेट|जाकेट|jackets','jacket'],['चमड़े|चमड़ा|चमड़े|लेदर|chamde|chamda','leather'],
+        ['नॉर्मल|नार्मल|सामान्य','normal'],['स्वेटर|sweaters','sweater'],['कार्डिगन|कार्डीगन|cardigans','cardigan'],
+        ['कुर्ता|कुर्ते|कुर्ती|कुर्तियां|kurte|kurtas|kurti|kurtis','kurta'],
+        ['सादा|साधारण|सादी|प्लेन|saada|sada|saadi','plain'],
+        ['फैंसी|फेन्सी|कढ़ाई|कढ़ाई|कढ़ाईदार|kadhai|kadhaai','fancy'],
+        ['रेशमी|रेशम|सिल्क|reshmi|resham','silk'],
+        ['सलवार|शलवार|salwars|shalwar','salwar'],
+        ['साड़ी|साडी|साड़ियां|साडियां|साड़ियाँ|साडियाँ|sarees|saris|sari|saari|sadi','saree'],
+        ['सूती|कॉटन|काटन|suti|sooti','cotton'],['वर्क|काम|kaam','work'],
+        ['ड्रेस|dresses','dress'],['छोटी|छोटा|शॉर्ट|chhoti|choti|short','short'],
+        ['घुटने|घुटनों|घुटना|ghutne','knee'],['तक|लंबाई|length','length'],
+        ['मैक्सी|maxi','maxi'],['लंबी|लम्बी|लॉन्ग|lambi','long'],['नाजुक|नाज़ुक|delicate|nazuk','delicate'],
+        ['लहंगा|लहँगा|लहंगे|लहंगे|lehnga|lehangas|lehengas|lehanga','lehenga'],
+        ['अस्तर|लाइनिंग|परत|astar|lining|linings|layer|layers','lining'],
+        ['सिंगल|एकल|single','single'],['डबल|दोहरा|दोहरी|double','double'],
+        ['शॉल|शाल|shawls|shaal|shal','shawl'],
+        ['कंबल|कम्बल|blankets|kambal|blanket','blanket'],['भारी|हेवी|bhaari|bhari','heavy'],
+        ['तौलिया|तौलिये|टॉवल|तोलिया|tauliya|toliya|towels','towel'],
+        ['बड़ा|बड़ी|बड़े|बडा|बडी|बडे|लार्ज|bada|badi|bade','large'],
+        ['हाथ|हैंड|haath','hand'],['मुंह|मुँह|चेहरा|फेस|chehra|muh','face'],
+        ['बेडशीट|बेड शीट|चादर|चादरें|चादरे|chadar|chaadar|bed sheet|bedsheets','bedsheet'],
+        ['रजाई|रज़ाई|rajai|rajaai|quilts','quilt'],
+        ['कालीन|कारपेट|क़ालीन|kaleen|kalin|carpets','carpet'],
+        ['वर्ग फुट|स्क्वायर फीट|स्क्वेयर फीट|square feet|square foot|sq ft|sqft','sqft'],
+        ['पर्दा|पर्दे|परदे|पर्दों|curtain|curtains|parde|parda|pardein','curtains'],
+        ['सोफा|सोफ़ा','sofa'],['कवर|covers','cover'],['मध्यम|मीडियम|medium','medium'],
+        ['छोटे|स्मॉल|chhota|chota|small','small'],
+        ['स्पोर्ट्स|खेल|sports','sports'],['कैनवास|canvas','canvas'],['स्वेड|सुएड|suede','suede'],
+        ['जूते|जूता|जुते|शू|शूज़|shoes|joota|joote|jute','shoe']
+      ];
+      words.forEach(function(pair){
+        text = text.replace(new RegExp('(^|\\s)(?:'+pair[0]+')(?=\\s|$)','gi'),function(_,prefix){return prefix+pair[1];});
+      });
+      text=text.replace(/\b(?:ka|ki|ke|wala|wali|wale)\b|(?:का|की|के|वाला|वाली|वाले)/g,' ').replace(/\s+/g,' ').trim();
+      function has(word){return (' '+text+' ').indexOf(' '+word+' ')>=0;}
+      if(has('tshirt')) return 'Tshirt';
+      if(has('shirt')) return 'Shirt';
+      if(has('pant')) return 'Pant';
+      if(has('trouser')) return 'Trouser';
+      if(has('jeans')) return 'Jeans';
+      if(has('coat')) return has('half')?'Half-Coat':has('full')?'Full-Coat':'Coat';
+      if(has('suit')) return has('3')&&has('pcs')?'Suit 3 Pcs':has('2')&&has('pcs')?'Suit 2 Pcs':'Suit';
+      if(has('jacket')) return has('leather')?'Jacket-Leather':has('normal')?'Jacket-Normal':'Jacket';
+      if(has('sweater')||has('cardigan')) return 'Sweater/Cardigan';
+      if(has('kurta')) return has('silk')||has('fancy')?'Kurta-Fancy/ Silk':has('plain')?'Kurta-Plain':'Kurta';
+      if(has('salwar')) return has('fancy')?'Salwar-Fancy':has('plain')?'Salwar-Plain':'Salwar';
+      if(has('saree')) return has('silk')&&has('work')?'Saree-Silk Work':has('silk')?'Saree-Silk':has('cotton')?'Saree-Cotton':has('plain')?'Saree-Plain':'Saree';
+      if(has('dress')||has('maxi')) return has('short')||has('knee')?'Short Dress Knee Length':(has('maxi')||has('long'))&&has('delicate')?'Maxi/Long Dress -Delicate':has('maxi')||has('long')?'Maxi/Long Dress':'Dress';
+      if(has('lehenga')) return has('lining')?(has('3')?'Lehenga-3 Lining':has('2')?'Lehenga-2 Lining':has('1')||has('single')?'Lehenga-Single Lining':'Lehenga-Lining'):'Lehenga';
+      if(has('shawl')) return 'Shawl';
+      if(has('blanket')) return 'Blanket'+(has('heavy')?' Heavy':'')+(has('double')?'-Double':has('single')?'-Single':'');
+      if(has('towel')) return has('hand')||has('face')?'Hand / Face Towel':has('large')?'Towel Large':'Towel';
+      if(has('bedsheet')) return has('double')?'Bedsheet-Double':has('single')?'Bedsheet-Single':'Bedsheet';
+      if(has('quilt')) return has('double')?'Quilt-Double':has('single')?'Quilt-Single':'Quilt';
+      if(has('carpet')) return has('150')&&has('200')?'Carpet 150-200 Sq ft':has('25')?'Carpet upto 25 Sq Ft':'Carpet';
+      if(has('curtains')) return has('cotton')?'Curtains Cotton':'Curtains';
+      if(has('sofa')&&has('cover')) return 'Sofa cover'+(has('large')?' – Large':has('medium')?' – Medium':has('small')||has('short')?' – Small':'');
+      if(has('shoe')||/^(sports|canvas|leather|suede)$/.test(text)) return has('suede')?'Suede Shoe':has('leather')?'Leather Shoe':has('canvas')?'Canvas Shoe':has('sports')?'Sports Shoe':'Shoe';
+      return original; // Keep unknown garments editable; never guess a priced variant.
+    }
+
+
+
+
+    function voiceClean_(value){
+      return String(value||'').replace(/^[\s,:;।.\-]+|[\s,:;।.\-]+$/g,'').trim();
+    }
+
+    function voiceNumberText_(value){
+      var text = String(value||'').replace(/[०-९]/g,function(d){return String('०१२३४५६७८९'.indexOf(d));});
+      var singles={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9};
+      var tens={twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+      text=text.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[ -]+(one|two|three|four|five|six|seven|eight|nine)\b/gi,function(_,t,s){return String(tens[t.toLowerCase()]+singles[s.toLowerCase()]);});
+      var words={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,ek:1,do:2,teen:3,char:4,chaar:4,panch:5,paanch:5,chhe:6,che:6,saat:7,aath:8,nau:9,das:10,'शून्य':0,'जीरो':0,'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'अट्ठाइस':28,'उनतीस':29,'तीस':30,'इकतीस':31};
+      text=text.replace(/[A-Za-z\u0900-\u097F]+/g,function(w){return Object.prototype.hasOwnProperty.call(words,w.toLowerCase())?String(words[w.toLowerCase()]):w;});
+      text=text.replace(/\b2\s+(?:thousand|hazar|हजार|हज़ार)\s+(\d{1,2})\b/gi,function(_,n){return String(2000+Number(n));});
+      text=text.replace(/(\d+)\s*(?:point|decimal|पॉइंट|प्वाइंट|दशमलव)\s*(\d+)(?:\s+(\d)(?=\s*(?:kg|किलो|केजी)))?/gi,function(_,a,b,c){return a+'.'+b+(c||'');});
+      return text;
+    }
+
+    function voiceReadDate_(input, reference){
+      var text=voiceNumberText_(input).replace(/^\s*(?:(?:date|डेट|तारीख़?|तारिख|tarikh|tareekh|ki|ko|on|the|की|को|में|है)\s*[:\-]?\s*)+/i,'');
+      var dateWords={pandrah:15,pandara:15,pandra:15,fifteenth:15};
+      text=text.replace(/\b(pandrah|pandara|pandra|fifteenth)\b/gi,function(w){return dateWords[w.toLowerCase()];});
+      var months={january:1,jan:1,'जनवरी':1,janvari:1,february:2,feb:2,'फरवरी':2,'फ़रवरी':2,farvari:2,march:3,mar:3,'मार्च':3,april:4,apr:4,'अप्रैल':4,may:5,'मई':5,june:6,jun:6,'जून':6,july:7,jul:7,'जुलाई':7,august:8,aug:8,'अगस्त':8,september:9,sep:9,sept:9,'सितंबर':9,'सितम्बर':9,sitambar:9,sitamber:9,october:10,oct:10,'अक्टूबर':10,november:11,nov:11,'नवंबर':11,'नवम्बर':11,december:12,dec:12,'दिसंबर':12,'दिसम्बर':12};
+      var today=reference||new Date(),match,day,month,year,end=0;
+      var monthNames=Object.keys(months).sort(function(a,b){return b.length-a.length;}).join('|');
+      match=text.match(new RegExp('^\\s*(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:(?:तारीख़?|tarikh|tareekh)\\s+)?('+monthNames+')(?:\\s+(\\d{4}|\\d{2})(?=\\s|$|[,;।]))?','i'));
+      if(match){day=Number(match[1]);month=months[match[2].toLowerCase()];year=match[3]?Number(match[3]):today.getFullYear();end=match[0].length;}
+      else if((match=text.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(?=\s|$|[,;।])/))){year=Number(match[1]);month=Number(match[2]);day=Number(match[3]);end=match[0].length;}
+      else if((match=text.match(/^\s*(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?=\s|$|[,;।])/)) || (match=text.match(/^\s*(\d{1,2})\s+(\d{1,2})\s+(\d{4})(?=\s|$|[,;।])/))){day=Number(match[1]);month=Number(match[2]);year=Number(match[3]);end=match[0].length;}
+      else if((match=text.match(/^\s*(day after tomorrow|tomorrow|today|narso|parso|kal|aaj|परसों|परसो|नरसों|नरसो|कल|आज)(?=\s|$|[,;।])/i))){
+        var word=match[1].toLowerCase(),delta=/narso|नरसो|नरसों/.test(word)?3:/parso|परसो|परसों|day after/.test(word)?2:/tomorrow|kal|कल/.test(word)?1:0;
+        var date=new Date(today.getFullYear(),today.getMonth(),today.getDate()+delta);day=date.getDate();month=date.getMonth()+1;year=date.getFullYear();end=match[0].length;
+      }
+      else if((match=text.match(/^\s*(\d{1,2})(?:st|nd|rd|th)?\s*(?:तारीख़?|तारिख|tarikh|tareekh|date)(?=\s|$|[,;।])/i)) || (match=text.match(/^\s*(\d{1,2})(?:st|nd|rd|th)?(?=\s*(?:$|[,;।]|को|है|ko\b|hai\b))/i))){
+        day=Number(match[1]);month=today.getMonth()+1;year=today.getFullYear();end=match[0].length;
+        var lastDay=new Date(year,month,0).getDate();
+        if(today.getDate()>lastDay-7 && day<today.getDate()){
+          month++;if(month>12){month=1;year++;}
+        }
+      }
+      if(!end)return {value:'',rest:text,consumed:false,error:voiceClean_(text)?'Delivery date not understood. Say: 5 September 2026.':''};
+      if(year<100)year+=2000;
+      var checked=new Date(year,month-1,day);
+      var valid=year>=2000 && year<=2199 && checked.getFullYear()===year && checked.getMonth()===month-1 && checked.getDate()===day;
+      var rest=text.slice(end).replace(/^\s*(?:(?:को|की|है|हैं|देना|देनी|देनी है|करना|चाहिए|रखना|रखो|करो|डिलीवरी|डिलिवरी|ko|ki|hai|dena|deni|karna|rakhna|delivery)(?=\s|$|[,;।])\s*)+/i,'');
+      return {value:valid?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'',rest:rest,consumed:true,error:valid?'':'Invalid delivery date. Please correct it.'};
+    }
+
+    function voiceDateToIso_(text){return voiceReadDate_(String(text||'').replace(/^\s*(?:delivery\s*(?:date)?|डिलीवरी\s*(?:डेट|तारीख)?|date|तारीख)\s*[:\-]?\s*/i,'')).value;}
+
+    function voiceBlankItem_(){return {service:'',item:'',qty:0,weight:0,rate:'',amt:0};}
+    function readVoiceRate_(input){
+      var text=voiceNumberText_(normalizeVoiceAliases_(input));
+      var pattern=/(?:(?:\brate|रेट|दर)\s*[:\-]?\s*(\d+(?:\.\d+)?)|(?:\b(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|rupaye|rupaiye|rupya|रुपये|रुपए|रुपया|रूपये)(?:\s*(?:का|की|के|ka|ki|ke|वाला|वाली|वाले|wala|wali|wale))?)|(?:\b(\d+(?:\.\d+)?)\s*(?:का|की|के|ka|ki|ke|वाला|वाली|वाले|wala|wali|wale)))(?=\s*$)/i;
+      var m=text.match(pattern);return {rate:m?Number(m[1]||m[2]||m[3]):null,rest:m?text.replace(pattern,'').trim():text};
+    }
+    function voiceIsBlankItem_(item){return !item.item && !item.service && !Number(item.weight) && (!Number(item.qty)||Number(item.qty)===1);}
+
+    function voiceReadItems_(input){
+      // Normalize the service before splitting "and": wash AND iron stays one service.
+      var text=voiceNumberText_(normalizeVoiceAliases_(input)).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ');
+      text=text.replace(/(\d)\s+(?:hundred|सौ)(?=\s|$)/gi,function(_,n){return String(Number(n)*100);});
+      // Convert mixed units before row splitting, so 'kg 400 gram' is not another row.
+      text=text.replace(/(\d+(?:\.\d+)?)\s*kg\s*(\d+(?:\.\d+)?)\s*(?:grams?|gm|g|ग्राम)(?=\s|$|[,;।])/gi,function(_,kg,g){return String(Math.round((Number(kg)+Number(g)/1000)*1000)/1000)+' kg';});
+      text=text.replace(/(\d+(?:\.\d+)?)\s*(?:grams?|gm|g|ग्राम)(?=\s|$|[,;।])/gi,function(_,g){return String(Number(g)/1000)+' kg';});
+      text=text.replace(/(\d)(kg)(?=\s|$|[,;।])/gi,'$1 $2').replace(/\bkg(?:\s+kg)+\b/gi,'kg');
+      var serviceNames=['KG WF','WI','WF','DC','IR','SH','BLK','KG'].concat(serviceOptions).filter(Boolean).sort(function(a,b){return b.length-a.length;}).map(function(x){return String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');});
+      var services=serviceNames.join('|'),rows=[],issues=[];
+      // Only an explicit spoken separator starts a row. Repeated quantities revise it.
+      text=text.replace(/\b(KG WF|WI|WF|DC|IR|SH|BLK)\s+(?=\d+(?:\s|$))/gi,function(all,code){return /^KG WF$/i.test(code)?all:code+' ~ ';});
+      text=text.replace(/\s+(\d+)\s+(?=(?:shirts?|pants?|trousers?|jeans|blankets?|shoe|शर्ट|पैंट|कंबल)\b)/gi,' ~ $1 ');
+      var chunks=text.split(/(?:^|\s)(?:और|aur|and)(?=\s|$)/i);
+      var leading=/^\s*(?:और|aur|and)(?=\s|$)/i.test(text),trailing=/(?:^|\s)(?:और|aur|and)\s*$/i.test(text);
+      chunks.forEach(function(chunk){
+        chunk=voiceClean_(chunk).replace(/[,;।\n]+/g,' ');if(!chunk)return;
+        var price=readVoiceRate_(chunk);chunk=price.rest;
+        var revisions=chunk.split(/\s*~\s*/).filter(function(part){return part.trim();}),revised=revisions.shift();
+        revisions.forEach(function(part){
+          if(/^\d+$/.test(part.trim()))revised=revised.replace(/^\d+/,part.trim());
+          else{
+            var previous=revised.match(/\b(KG WF|WI|WF|DC|IR|SH|BLK|KG)\s*$/i);
+            revised=part+(previous&&!/\b(KG WF|WI|WF|DC|IR|SH|BLK|KG)\b/i.test(part)?' '+previous[1]:'');
+          }
+        });chunk=revised.trim();
+        var qtyMatch=chunk.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+        if(!qtyMatch){issues.push('Incomplete item: '+chunk);return;}
+        var qty=Number(qtyMatch[1]),body=qtyMatch[2],service='',weight=0,item=body;
+        if(/^SH$/i.test(body))body='shoe SH';
+        var serviceMatch=body.match(new RegExp('\\s+('+services+')(?=\\s|$)(.*)$','i'));
+        if(serviceMatch){
+          service=resolveVoiceService_(serviceMatch[1],/^kg$/i.test(serviceMatch[1]));
+          item=body.slice(0,serviceMatch.index).trim();
+          var after=voiceClean_(serviceMatch[2]).replace(/^(?:hai|hain|है|हैं)\s*/i,'');
+          if(/^(?:KG WF|WI|WF|DC|IR|SH|BLK|KG)(?:\s+(?:KG WF|WI|WF|DC|IR|SH|BLK|KG))*$/i.test(after)){
+            serviceMatch[1]=after.match(/KG WF|WI|WF|DC|IR|SH|BLK|KG/gi).pop();
+            service=resolveVoiceService_(serviceMatch[1],/^kg$/i.test(serviceMatch[1]));after='';
+          }
+          if(/^kg(?: wf)?$/i.test(serviceMatch[1])){
+            var beforeWeight=item.match(/\s+(\d+(?:\.\d+)?)$/);
+            var afterWeight=after.match(/^(?:(?:weight|वजन|वज़न|वेट)\s*[:\-]?\s*)?(\d+(?:\.\d+)?)(?:\s*kg)?/i);
+            if(beforeWeight){weight=Number(beforeWeight[1]);item=item.slice(0,beforeWeight.index);}
+            else if(afterWeight){weight=Number(afterWeight[1]);after=after.slice(afterWeight[0].length);}
+            if(!(weight>0))issues.push('Weight is required for KG item: '+item);
+          }
+          if(voiceClean_(after)&&! /^(?:hai|hain|है|हैं|करना|करो|karna|karo)$/i.test(voiceClean_(after)))issues.push('Check extra item words: '+after);
+        }
+        item=item.replace(/\s+(?:hai|hain|ki|ka|ke|है|हैं|की|का|के)\s*$/i,'').trim();
+        if(!serviceMatch){
+          if(/\bshoe\b/i.test(item))service=resolveVoiceService_('SH',false);
+        }
+        if(!Number.isInteger(qty)||qty<=0)issues.push('Quantity must be a positive whole number.');
+        if(!service)issues.push('Select the service for: '+item);
+        rows.push({service:service,item:normalizeVoiceItem_(item),qty:qty,weight:weight,rate:price.rate===null?'':price.rate,amt:0});
+      });
+      if(trailing)rows.push(voiceBlankItem_());
+      return {items:rows,issues:issues,leadingSeparator:leading};
+    }
+
+    function parseNaturalVoiceItems_(text){return voiceReadItems_(text).items;}
+
+    function voiceReadPhone_(input){
+      var text=voiceNumberText_(input).replace(/^\s*(?:number|नंबर|नम्बर)\s*/i,'').trim(),phone='',end=0;
+      text=text.replace(/^\+91[\s-]*/, '');
+      var compact=text.match(/^(\d{10,})(?=\s|$|[,;।])/);
+      if(compact){phone=compact[1];end=compact[0].length;if(phone.length===12&&phone.slice(0,2)==='91')phone=phone.slice(2);}
+      else {
+        var tokens=/\d+/g,m;while((m=tokens.exec(text))!==null){
+          if(/[^\s-]/.test(text.slice(end,m.index)))break;
+          phone+=m[0];end=tokens.lastIndex;if(phone.length>=10)break;
+        }
+      }
+      return {value:phone,rest:text.slice(end),complete:/^\d{10}$/.test(phone),error:phone.length>10?'Phone must be exactly 10 digits.':''};
+    }
+
+    function parseVoiceToken_(speech, pending){
+      var raw=String(speech||'').trim(),result={name:'',phone:'',deliveryDate:'',remark:'',items:[],issues:[],pending:null,fields:{},saveRequested:false};
+      if(!pending && /^\s*(?:\d{1,2}|pandrah|pandra|pandara|fifteenth)(?:st|nd|rd|th)?\s*(?:तारीख़?|तारिख|tarikh|tareekh|date)(?=\s|$|[।,.])/i.test(voiceNumberText_(raw)))raw='delivery date '+raw;
+      raw=raw.replace(/डिलेवरी|डिलिवेरी|डिलीवेरी/g,'डिलीवरी');
+      // Recognize day-before-tarikh after a name/phone as well, without changing names or remarks.
+      var remarkAt=raw.search(/(?:^|\s)(?:remark|remarks|note|रिमार्क|टिप्पणी)(?=\s|:|$)/i);
+      var prefix=remarkAt>=0?raw.slice(0,remarkAt):raw,suffix=remarkAt>=0?raw.slice(remarkAt):'';
+      prefix=prefix.replace(/(^|[\s,;])([\d०-९]{1,2}|पंद्रह|पन्द्रह|एक|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|ग्यारह|बारह|तेरह|चौदह|सोलह|सत्रह|अठारह|उन्नीस|बीस|इक्कीस|बाईस|तेईस|चौबीस|पच्चीस|छब्बीस|सत्ताईस|अट्ठाईस|उनतीस|तीस|इकतीस)\s+(तारीख़?|तारिख|tarikh|tareekh)(?=\s|$|[,;।])/gi,function(all,space,day,label,offset,source){
+        if(/(?:delivery|डिलीवरी|डिलिवरी)(?:\s+(?:date|डेट|की|में|तारीख))*\s*$/i.test(source.slice(0,offset)))return all;
+        return space+'delivery date '+day+' '+label;
+      });
+      raw=prefix+suffix;
+      var labels=/(^|[\s,;।])((?:delivery\s*(?:date)?|डिलीवरी\s*(?:डेट|तारीख)?|डिलिवरी\s*(?:डेट|तारीख)?)|(?:phone|mobile|फोन|फ़ोन|मोबाइल)(?:\s*(?:number|नंबर|नम्बर))?|(?:customer\s*name|name|naam|नाम)|(?:remark|remarks|note|रिमार्क|टिप्पणी))\s*[:\-]?\s*/gi;
+      if(pending && !/^(?:phone|mobile|फोन|फ़ोन|मोबाइल|नाम|name|naam|delivery|डिलीवरी|डिलिवरी|remark|रिमार्क)(?=\s|:|$)/i.test(raw))raw=pending.field+' '+(pending.text||'')+' '+raw;
+      var save=raw.match(/(?:^|\s)(?:save\s+token|token\s+save|टोकन\s+सेव(?:\s+(?:करो|करना|कर\s*दो))?)\s*[.!।]?$/i);
+      if(save){result.saveRequested=true;raw=raw.slice(0,save.index);}
+      var spans=[],m;while((m=labels.exec(raw))!==null){spans.push({label:m[2],start:m.index,end:labels.lastIndex});if(/^(remark|remarks|note|रिमार्क|टिप्पणी)$/i.test(m[2]))break;}
+      var itemParts=[];
+      if(!spans.length)itemParts.push(raw);
+      else if(voiceClean_(raw.slice(0,spans[0].start)))itemParts.push(raw.slice(0,spans[0].start));
+      spans.forEach(function(span,index){
+        var body=raw.slice(span.end,index+1<spans.length?spans[index+1].start:raw.length),label=span.label.toLowerCase();
+        if(/^(phone|mobile|फोन|फ़ोन|मोबाइल)/.test(label)){
+          result.fields.phone=true;var phone=voiceReadPhone_(body);result.phone=phone.value;
+          if(phone.error)result.issues.push(phone.error);
+          if(!phone.complete&&!voiceClean_(phone.rest))result.pending={field:'phone',text:phone.value};
+          if(voiceClean_(phone.rest)&&! /^(और|aur|and)$/i.test(voiceClean_(phone.rest)))itemParts.push(phone.rest);
+        }else if(/^(delivery|डिलीवरी|डिलिवरी)/.test(label)){
+          result.fields.deliveryDate=true;var date=voiceReadDate_(body);result.deliveryDate=date.value;
+          if(date.error)result.issues.push(date.error);
+          if(date.consumed){if(voiceClean_(date.rest)&&! /^(और|aur|and)$/i.test(voiceClean_(date.rest)))itemParts.push(date.rest);}
+          else result.pending={field:'delivery date',text:voiceClean_(body)};
+        }else if(/^(remark|remarks|note|रिमार्क|टिप्पणी)/.test(label)){
+          result.fields.remark=true;result.remark=voiceClean_(body);
+        }else{
+          result.fields.name=true;
+          var start=body.search(/(?:^|\s)(?:\d+|एक|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|one|two|three|four|five|six|seven|eight|nine|ten)\s+/i);
+          result.name=voiceClean_(start>=0?body.slice(0,start):body).replace(/\s+(?:और|aur|and)$/i,'').trim();
+          if(start>=0)itemParts.push(body.slice(start));
+          if(!result.name)result.pending={field:'name',text:''};
+        }
+      });
+      var parsed=voiceReadItems_(itemParts.join(' '));result.items=parsed.items;result.issues=result.issues.concat(parsed.issues);result.leadingSeparator=parsed.leadingSeparator;
+      return result;
+    }
+
+    var tokenVoiceDraft_=null,tokenVoicePending_=null,tokenVoiceActive_=false,tokenVoiceLastParsed_=null;
+    var tokenVoiceScope_='token',tokenVoiceContinuous_=false,tokenVoiceEpoch_=0;
+    function voiceButtons_(active){
+      ['voiceToken','voiceItems'].forEach(function(id){
+        var selected=(id==='voiceItems')===(tokenVoiceScope_==='items');
+        var start=document.getElementById(id+'Btn'),stop=document.getElementById(id+'StopBtn');
+        if(start)start.disabled=active&&selected;
+        if(stop)stop.disabled=!(active&&selected);
+      });
+    }
+    function voiceStatus_(text){
+      var el=document.getElementById(tokenVoiceScope_==='items'?'voiceItemsStatus':'voiceTokenStatus');
+      if(el)el.textContent=text;
+    }
+    function getTokenItemsForSave_(){return getTokenItems().filter(function(it){return !voiceIsBlankItem_(it);});}
+    function beginVoiceTokenDraft_(){
+      tokenVoiceActive_=true;
+      tokenVoiceLastParsed_=null;
+      tokenVoiceDraft_={items:getTokenItems(),name:document.getElementById('tokenCustomerName').value,phone:document.getElementById('tokenPhone').value,deliveryDate:document.getElementById('tokenDeliveryDate').value,remark:document.getElementById('tokenRemark').value,pending:tokenVoicePending_};
+    }
+    function mergeVoiceItems_(base, incoming, leadingSeparator){
+      var rows=base.map(function(it){return Object.assign({},it);});
+      incoming.forEach(function(it,index){
+        if(index===0 && !leadingSeparator && rows.length && !voiceIsBlankItem_(it) && !voiceIsBlankItem_(rows[rows.length-1])){
+          var old=rows[rows.length-1];if(old.locked)return;rows[rows.length-1]=Object.assign({},old,it,{service:it.service||old.service,rate:it.rate===''?old.rate:it.rate});return;
+        }
+        if(rows.length&&voiceIsBlankItem_(rows[rows.length-1])){
+          if(!voiceIsBlankItem_(it))rows[rows.length-1]=Object.assign({},it);
+        }else rows.push(Object.assign({},it));
+      });
+      return rows;
+    }
+    function fillVoiceTokenForm_(data, base){
+      base=base||{items:getTokenItems(),name:document.getElementById('tokenCustomerName').value,phone:document.getElementById('tokenPhone').value,deliveryDate:document.getElementById('tokenDeliveryDate').value,remark:document.getElementById('tokenRemark').value};
+      document.getElementById('tokenCustomerName').value=data.fields.name&&hindiFormText_(data.name)?data.name:base.name;
+      document.getElementById('tokenPhone').value=data.fields.phone?data.phone:base.phone;
+      document.getElementById('tokenDeliveryDate').value=data.deliveryDate||base.deliveryDate;
+      document.getElementById('tokenRemark').value=data.fields.remark?data.remark:base.remark;
+      renderTokenItemsTable(mergeVoiceItems_(base.items,data.items,data.leadingSeparator));
+      calcTokenTotals();
+    }
+    function applyVoiceTokenSpeech_(text, finalResult){
+      if(!tokenVoiceActive_)return;
+      var spokenRate=readVoiceRate_(text);
+      if(tokenVoiceScope_==='items'&&spokenRate.rate!==null&&!spokenRate.rest){
+        if(finalResult){var current=getTokenItems(),last=current.length-1;if(last>=0&&!current[last].locked){current[last].rate=spokenRate.rate;renderTokenItemsTable(current);tokenVoiceDraft_=null;}else document.getElementById('voiceItemsStatus').textContent='पहले item जोड़ें या Unlock करें।';}return;
+      }
+      if(!tokenVoiceDraft_)beginVoiceTokenDraft_();
+      var base=tokenVoiceDraft_,data=parseVoiceToken_(text,base.pending);
+      if(tokenVoiceScope_==='items'){
+        var command=voiceClean_(normalizeVoiceAliases_(text)).replace(/^(?:service|सर्विस|सेवा)\s+/i,'').trim();
+        if(/^(grams?|ग्राम)$/.test(command))command='KG';
+        if(/^(?:KG WF|WI|WF|DC|IR|SH|BLK|KG)(?:\s+(?:KG WF|WI|WF|DC|IR|SH|BLK|KG))*$/i.test(command)){
+          var code=command.match(/KG WF|WI|WF|DC|IR|SH|BLK|KG/gi).pop().toUpperCase(),selected=resolveVoiceService_(code,code==='KG'),target=base.items.length-1;
+          while(target>=0&&!base.items[target].item)target--;
+          data.items=[];data.issues=[];data.pending=null;
+          if(target<0)data.issues=['पहले quantity और item भरें, फिर service बोलें।'];
+          else if(!selected)data.issues=['Service '+code+' उपलब्ध नहीं है। Reload services दबाएँ।'];
+          else{
+            base=Object.assign({},base,{items:base.items.map(function(row){return Object.assign({},row);})});
+            base.items[target].service=selected;
+            if(!/^KG(?: WF)?$/.test(code))base.items[target].weight=0;
+            else if(!(Number(base.items[target].weight)>0))data.issues=['KG चुना गया। अब वजन बोलें, जैसे 3 किलो 400 ग्राम।'];
+          }
+        }
+        var weightOnly=voiceNumberText_(normalizeVoiceAliases_(text)).replace(/(\d)\s+(?:hundred|सौ)(?=\s|$)/gi,function(_,n){return String(Number(n)*100);}).trim();
+        if(/^(?:kg(?: wf)?\s+)?\d+(?:\.\d+)?\s*kg(?:\s+\d+(?:\.\d+)?\s*(?:grams?|gm|g|ग्राम))?(?:\s+kg)*$/i.test(weightOnly)){
+          var weightResult=voiceReadItems_('1 Weight '+weightOnly),last=base.items.length-1;
+          while(last>=0&&!base.items[last].item)last--;
+          if(last>=0&&base.items[last].item&&weightResult.items.length===1&&weightResult.items[0].weight>0){
+            base=Object.assign({},base,{items:base.items.map(function(row){return Object.assign({},row);})});
+            base.items[last].service=resolveVoiceService_(/KG WF/i.test(weightOnly)||base.items[last].service==='KG WF'?'KG WF':'KG',false);base.items[last].weight=weightResult.items[0].weight;
+            data.items=[];data.issues=weightResult.issues;
+          }else data.issues=['पहले quantity और item बोलें, फिर वजन बताएँ।'];
+        }
+      }
+      if(tokenVoiceScope_==='details')data.items=[];
+      if(tokenVoiceScope_==='items'){
+        data.fields={};data.name=base.name;data.phone=base.phone;data.deliveryDate=base.deliveryDate;data.remark=base.remark;
+      }
+      tokenVoiceLastParsed_=data;
+      document.getElementById(tokenVoiceScope_==='items'?'voiceItemsTranscript':'voiceTokenTranscript').textContent=text;
+      if(tokenVoiceScope_==='items'){
+        var qtyOnly=voiceNumberText_(text).trim().match(/^(?:quantity\s+|qty\s+|क्वांटिटी\s+|मात्रा\s+)?(?:\d+\s+)*(\d+)$/i);
+        if(qtyOnly){
+          var target=base.items.length-1;while(target>=0&&!base.items[target].item)target--;
+          data.items=[];data.issues=[];
+          if(target>=0&&Number(qtyOnly[1])>0){base=Object.assign({},base,{items:base.items.map(function(r){return Object.assign({},r);})});base.items[target].qty=Number(qtyOnly[1]);}
+          else data.issues=['पहले item भरें और positive quantity बोलें।'];
+        }
+        renderTokenItemsTable(mergeVoiceItems_(base.items,data.items,data.leadingSeparator));calcTokenTotals();
+      }else if(tokenVoiceScope_==='details'){
+        if(data.fields.name&&hindiFormText_(data.name))document.getElementById('tokenCustomerName').value=data.name;
+        if(data.fields.phone)document.getElementById('tokenPhone').value=data.phone;
+        if(data.deliveryDate)document.getElementById('tokenDeliveryDate').value=data.deliveryDate;
+      }else fillVoiceTokenForm_(data,base);
+      if(!finalResult)return;
+      if(tokenVoiceContinuous_){
+        voiceStatus_(data.issues.length?data.issues.join(' '):'Listening… Pause allowed. Tap Stop when finished.');
+        if(data.fields.phone && /^\d{10}$/.test(data.phone) && !data.fields.name)lookupTokenCustomer();
+        if(data.saveRequested&&!data.issues.length&&!data.pending){stopVoiceToken();confirmVoiceToken_(text);}
+        return;
+      }
+      tokenVoicePending_=data.pending;tokenVoiceDraft_=null;tokenVoiceActive_=false;
+      document.getElementById('voiceTokenBtn').disabled=false;
+      document.getElementById('voiceTokenStopBtn').disabled=true;
+      if(data.fields.phone && /^\d{10}$/.test(data.phone) && !data.fields.name){
+        if(data.phone!==base.phone)document.getElementById('tokenCustomerName').value='';
+        lookupTokenCustomer();
+      }
+      document.getElementById('voiceTokenStatus').textContent=data.issues.length?data.issues.join(' '):data.pending?'Continue the '+data.pending.field+' field by tapping Start Voice Token again.':'Fields filled. Speak more with Start Voice Token, or review and tap Save Token.';
+      if(data.saveRequested&&!data.issues.length&&!data.pending)confirmVoiceToken_(text);
+    }
+
+    function confirmVoiceToken_(transcript){
+      var name = document.getElementById('tokenCustomerName').value.trim();
+      var phone = document.getElementById('tokenPhone').value.trim();
+      var items = getTokenItemsForSave_();
+      if(!name || !/^\d{10}$/.test(phone) || !items.length || items.some(function(it){ return !it.item||!it.service||!Number.isInteger(Number(it.qty))||it.qty<=0||(/^(KG|KG WF)$/.test(it.service)&&!(Number(it.weight)>0)); })){
+        document.getElementById('voiceTokenStatus').textContent = 'Some details were not understood. Correct the form or speak again.';
+        document.getElementById('voiceTokenBtn').disabled = false;
+        return;
+      }
+      var summary = 'Token for ' + name + ', phone ' + phone.split('').join(' ') + ', total quantity ' + document.getElementById('tokenQuantity').value + '. Save karoon? Haan ya nahin boliye.';
+      document.getElementById('voiceTokenStatus').textContent = 'Confirming: say Yes/Haan or No/Nahi.';
+      
+      if(window.speechSynthesis) {
+        var utterance = new SpeechSynthesisUtterance(summary);
+        utterance.lang = 'hi-IN';
+        utterance.rate = 0.9;
+        utterance.onend = function(){
+          setTimeout(listenVoiceTokenConfirmation_, 400);
+        };
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      } else {
+        listenVoiceTokenConfirmation_();
+      }
+    }
+
+    function listenVoiceTokenConfirmation_(){
+      if(/LaundryBazaarAndroid/i.test(navigator.userAgent||'')){
+        document.getElementById('voiceTokenStatus').textContent = 'Android is listening for Haan/Yes or Nahi/No...';
+        if(window.AndroidVoice && typeof window.AndroidVoice.startRecognition === 'function') window.AndroidVoice.startRecognition('confirmation'); else window.onAndroidVoiceError('This Android app needs native voice support.');
+        return;
+      }
+      if(window.AndroidVoice && typeof window.AndroidVoice.startRecognition === 'function'){
+        document.getElementById('voiceTokenStatus').textContent = 'Android is listening for Haan/Yes or Nahi/No...';
+        if(window.AndroidVoice && typeof window.AndroidVoice.startRecognition === 'function') window.AndroidVoice.startRecognition('confirmation'); else window.onAndroidVoiceError('This Android app needs native voice support.');
+        return;
+      }
+      document.getElementById('voiceTokenStatus').textContent = 'Voice confirmation is available only in the Android app.';
+      document.getElementById('voiceTokenBtn').disabled = false;
+      document.getElementById('voiceTokenStopBtn').disabled = true;
+      return;
+      var Recognition = voiceRecognitionClass_();
+      if(!Recognition) return;
+      var recognition = new Recognition();
+      voiceTokenConfirmRecognition = recognition;
+      recognition.lang = 'hi-IN';
+      recognition.interimResults = false;
+      recognition.onresult = function(event){
+        var answer = String(event.results[0][0].transcript||'').toLowerCase();
+        handleVoiceTokenConfirmation_(answer);
+      };
+      recognition.onerror = function(){
+        document.getElementById('voiceTokenStatus').textContent = 'Confirmation not heard. Tap Start Voice Token to retry.';
+        document.getElementById('voiceTokenBtn').disabled = false;
+      };
+      recognition.onend = function(){ voiceTokenConfirmRecognition = null; };
+      try{ recognition.start(); } catch(e){ document.getElementById('voiceTokenStatus').textContent = 'Unable to listen for confirmation.'; }
+    }
+
+    function handleVoiceTokenConfirmation_(answer){
+      answer = String(answer||'').toLowerCase();
+      document.getElementById('voiceTokenTranscript').textContent += '\nConfirmation: ' + answer;
+      if(guidedVoice_.yesNo(answer)===true){
+        document.getElementById('voiceTokenStatus').textContent = 'Confirmed. Saving token...';
+        saveTokenBooking();
+      } else {
+        document.getElementById('voiceTokenStatus').textContent = 'Not saved. Correct the form and try again.';
+        document.getElementById('voiceTokenBtn').disabled = false;
+        document.getElementById('voiceTokenStopBtn').disabled = true;
+      }
+    }
+
+    window.onAndroidVoicePartial = function(text){ applyVoiceTokenSpeech_(String(text||''),false); };
+    document.addEventListener('visibilitychange',function(){if(document.hidden&&tokenVoiceActive_)stopVoiceToken();});
+    window.onAndroidVoiceResult = function(text, mode){
+      if(/^guided/.test(mode)){if(typeof guidedVoice_!=='undefined')guidedVoice_.receive(text);return;}
+      text=String(text||'').trim();
+      if(mode==='confirmation'){handleVoiceTokenConfirmation_(text);return;}
+      applyVoiceTokenSpeech_(text,true);
+    };
+
+    window.onAndroidVoiceError = function(message){
+      if(typeof guidedVoice_!=='undefined'&&guidedVoice_.active){guidedVoice_.fail(String(message||'Microphone error'));return;}
+      tokenVoiceContinuous_=false;tokenVoiceEpoch_++;voiceButtons_(false);voiceStatus_(String(message||'Voice stopped.'));
+      tokenVoiceActive_=false;tokenVoiceDraft_=null;
+      document.getElementById('voiceTokenStatus').textContent = String(message||'Android voice recognition failed.');
+      document.getElementById('voiceTokenBtn').disabled = false;
+      document.getElementById('voiceTokenStopBtn').disabled = true;
+    };
+
+    window.addEventListener('message', function(event){
+      var data = event.data||{};
+      if(data.type === 'LB_NATIVE_VOICE_RESULT') window.onAndroidVoiceResult(data.text, data.mode);
+      if(data.type === 'LB_NATIVE_VOICE_ERROR') window.onAndroidVoiceError(data.message);
+      if(data.type === 'LB_NATIVE_VOICE_STATUS') {
+        document.getElementById('voiceTokenStatus').textContent = String(data.message||'Listening...');
+      }
+    });
+
+    function openTokenOrder(tokenNumber){
+      if(!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'manager')){
+        alert('Only an authorised order user can create an order from a token.');
+        return;
+      }
+      const activeToken = getActiveSessionToken();
+      if(!activeToken){
+        alert('Please login first.');
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(tok){
+          sourceTokenNumber = tok.tokenNumber;
+          addNewOrder(function(){
+            document.getElementById('phone').value = tok.phone || '';
+            document.getElementById('customerName').value = tok.customerName || '';
+            document.getElementById('deliveryDate').value = tok.deliveryDate || document.getElementById('orderDate').value;
+            if(Array.isArray(tok.items) && tok.items.length) renderItemsTable(tok.items.map(function(it){ return {service:it.service,item:it.item,qty:it.qty,weight:it.weight,rate:it.rate==null?'':it.rate,amt:0}; }));
+            var tokenContinuation = 'Token Number: ' + (tok.tokenNumber || '') +
+              ' | Total Quantity: ' + (tok.quantity || 0) +
+              ' | Remark: ' + (tok.remark || '—');
+            document.getElementById('customerInfo').textContent = tokenContinuation;
+            document.getElementById('customerInfo').className = 'info';
+            showTab('orderBooking');
+          });
+        })
+        .withFailureHandler(function(e){ alert('Unable to open token for order: ' + (e.message||e)); })
+        .getTokenForOrder(tokenNumber, activeToken);
+    }
+
+    function loadTokens(){
+      var tokenList = document.getElementById('tokenList');
+      var activeToken = getActiveSessionToken();
+      if(!tokenList) return;
+      if(!activeToken){
+        tokenList.innerHTML = '<div class="error">Please log in to load token details.</div>';
+        return;
+      }
+      tokenList.innerHTML = '<div class="info">Loading token details...</div>';
+      google.script.run
+        .withSuccessHandler(function(rows){
+          rows = Array.isArray(rows) ? rows : [];
+          rows.sort(function(a,b){
+            var aNumber = Number(String(a.tokenNumber||'').replace(/\D/g,''));
+            var bNumber = Number(String(b.tokenNumber||'').replace(/\D/g,''));
+            return bNumber - aNumber;
+          });
+          var canOrder = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
+          var h = '<div class="token-card-list">';
+          rows.forEach(function(r){
+            if(r.orderNumber){
+              h += '<div class="token-card booked">'+
+                '<div class="token-card-row"><span class="token-card-label">Token No.</span><span class="token-card-value">'+escapeHtml(String(r.tokenNumber||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Date</span><span class="token-card-value">'+escapeHtml(formatTokenDate(r.tokenDate))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Customer</span><span class="token-card-value">'+escapeHtml(String(r.customerName||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Phone</span><span class="token-card-value">'+escapeHtml(String(r.phone||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Quantity</span><span class="token-card-value">'+escapeHtml(String(r.quantity||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Remark</span><span class="token-card-value">'+escapeHtml(String(r.remark||'—'))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Order No.</span><span class="token-card-value success">'+escapeHtml(String(r.orderNumber))+'</span></div>'+
+                '</div>';
+            } else {
+              var button = canOrder
+                ? '<button class="btn" onclick="openTokenOrder(\''+String(r.tokenNumber).replace(/'/g,"\\'")+'\')">Book Order</button>'
+                : '<button class="btn" type="button" disabled title="Only Admin or Manager can book an order">Book Order</button>';
+              h += '<div class="token-card">'+
+                '<div class="token-card-row"><span class="token-card-label">Token No.</span><span class="token-card-value">'+escapeHtml(String(r.tokenNumber||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Date</span><span class="token-card-value">'+escapeHtml(formatTokenDate(r.tokenDate))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Customer</span><span class="token-card-value">'+escapeHtml(String(r.customerName||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Phone</span><span class="token-card-value">'+escapeHtml(String(r.phone||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Quantity</span><span class="token-card-value">'+escapeHtml(String(r.quantity||''))+'</span></div>'+
+                '<div class="token-card-row"><span class="token-card-label">Remark</span><span class="token-card-value">'+escapeHtml(String(r.remark||'—'))+'</span></div>'+
+                '<div class="token-card-action">'+button+'</div>'+
+                '</div>';
+            }
+          });
+          if(!rows.length) h += '<div class="info">No token records found.</div>';
+          h += '</div>';
+          tokenList.innerHTML = h;
+        })
+        .withFailureHandler(function(e){
+          tokenList.innerHTML = '<div class="error">Unable to load tokens: '+escapeHtml(String((e&&e.message)||e||'Unknown error'))+'</div>';
+        })
+        .getTokens(activeToken);
+    }
+
+    function formatTokenDate(v){
+      if(!v) return '';
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-IN');
+    }
+
+    function escapeHtml(v){
+      return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    function loadTelegramSettings(){ 
+      google.script.run.withSuccessHandler(function(s){
+        document.getElementById('telegramBotToken').value = s.botToken||'';
+        document.getElementById('telegramChatId').value = s.chatId||'';
+      }).getTelegramSettings(getActiveSessionToken()); 
+    }
+    
+    function saveTelegram(){ 
+      google.script.run.withSuccessHandler(function(m){
+        document.getElementById('telegramResult').textContent = m;
+      }).saveTelegramSettings(document.getElementById('telegramBotToken').value, document.getElementById('telegramChatId').value, getActiveSessionToken()); 
+    }
+    
+    function testTelegramBot(){ 
+      google.script.run.withSuccessHandler(function(m){
+        document.getElementById('telegramResult').textContent = 'Test sent: ' + m;
+      }).withFailureHandler(function(e){
+        document.getElementById('telegramResult').textContent = 'Error: ' + e;
+      }).testTelegram(document.getElementById('telegramBotToken').value, document.getElementById('telegramChatId').value, getActiveSessionToken()); 
+    }
+
+    function setLogo(base64img) {
+      if (base64img) document.getElementById('portalLogo').src = 'data:image/png;base64,' + base64img;
+    }
+
+    function setServices(opts) {
+      var existingItems=getTokenItems();
+      serviceOptions = Array.isArray(opts) ? opts.map(function(s){return String(s||'').trim();}).filter(function(s){return s&&!/^(WF|BLK)$/i.test(s);}) : [];
+      tokenServicesReady_=serviceOptions.length>0;
+      // These are the owner's confirmed token service codes, not invented prices.
+      if(tokenServicesReady_)['WI','DC','IR','SH','KG','KG WF'].forEach(function(code){
+        if(!serviceOptions.some(function(s){return s.toUpperCase()===code;}))serviceOptions.push(code);
+      });
+      if(!serviceOptions.some(function(s){ return /^(KG|KG WF)$/.test(String(s).trim().toUpperCase()); })) serviceOptions.push('KG');
+      renderTokenItemsTable(existingItems);
+      document.querySelectorAll('#itemsTable .service').forEach(function(select){
+        var selected=/^(BLK|WF)$/i.test(select.value.trim())?'':select.value;
+        var choices=serviceOptions.slice();
+        if(selected&&choices.indexOf(selected)<0)choices.unshift(selected);
+        select.innerHTML='<option value="">Select</option>'+choices.map(function(code){
+          return '<option value="'+escapeHtml(code)+'"'+(code===selected?' selected':'')+'>'+escapeHtml(code)+'</option>';
+        }).join('');
+      });
+      var missing=['WI','KG WF','DC','IR'].filter(function(code){return !resolveVoiceService_(code,false);});
+      document.getElementById('tokenBackendStatus').textContent=tokenServicesReady_?
+        'Backend services loaded.'+(missing.length?' Missing in Services sheet: '+missing.join(', ')+'.':' WI / KG WF / DC / IR ready.'):
+        'Backend returned no services. Check the Services sheet and Apps Script execution errors.';
+      if(typeof guidedVoice_!=='undefined')guidedVoice_.maybeAuto();
+    }
+    function loadTokenServices_(){
+      if(!currentUser||!getActiveSessionToken()){
+        document.getElementById('tokenBackendStatus').textContent='Please login before loading services.';return;
+      }
+      document.getElementById('tokenBackendStatus').textContent='Loading services from backend…';
+      google.script.run.withSuccessHandler(setServices).withFailureHandler(function(e){
+        tokenServicesReady_=false;
+        document.getElementById('tokenBackendStatus').textContent='Backend services failed: '+(e.message||e);
+      }).getServices(getActiveSessionToken());
+    }
+
+    function lookupCustomer() {
+      const phoneInput = document.getElementById('phone');
+      const phone = phoneInput.value.trim();
+      const customerInfo = document.getElementById('customerInfo');
+      const loading = document.getElementById('phoneLoading');
+      
+      if (lookupTimeout) clearTimeout(lookupTimeout);
+      
+      if (phone.length < 10) {
+        customerInfo.textContent = '';
+        loading.style.display = 'none';
+        return;
+      }
+      
+      loading.style.display = 'inline-block';
+      customerInfo.textContent = 'Searching...';
+      customerInfo.className = 'info';
+      
+      lookupTimeout = setTimeout(function() {
+        if (phone.length === 10 && /^\d{10}$/.test(phone)) {
+          google.script.run
+            .withSuccessHandler(function(customerName) {
+              loading.style.display = 'none';
+              if (customerName && customerName.trim() !== '') {
+                document.getElementById('customerName').value = customerName;
+                customerInfo.textContent = `Customer found: ${customerName}`;
+                customerInfo.className = 'success';
+              } else {
+                document.getElementById('customerName').value = '';
+                customerInfo.textContent = 'New customer - please enter name';
+                customerInfo.className = 'info';
+              }
+            })
+            .withFailureHandler(function(error) {
+              loading.style.display = 'none';
+              customerInfo.textContent = 'Error looking up customer';
+              customerInfo.className = 'error';
+            })
+            .getCustomerByPhone(phone, getActiveSessionToken());
+        } else {
+          loading.style.display = 'none';
+          customerInfo.textContent = 'Enter valid 10-digit phone number';
+          customerInfo.className = 'error';
+        }
+      }, 800);
+    }
+
+    function addNewOrder(prefillCallback) {
+      const activeToken = getActiveSessionToken();
+      if (!activeToken) {
+        document.getElementById('orderError').textContent = 'Please login first.';
+        document.getElementById('orderError').className = 'error';
+        return;
+      }
+      document.getElementById('saveOrderBtn').disabled = false;
+      document.getElementById('orderError').textContent = '';
+      document.getElementById('orderError').className = 'error';
+      document.getElementById('customerInfo').textContent = '';
+      document.getElementById('phoneLoading').style.display = 'none';
+      
+      google.script.run.withSuccessHandler(function(obj) {
+        document.getElementById('orderNumber').value = obj.orderNumber;
+        document.getElementById('orderDate').value = obj.today;
+        document.getElementById('customerName').value = "";
+        document.getElementById('deliveryDate').value = obj.today;
+        document.getElementById('phone').value = "";
+        renderItemsTable([]);
+        document.getElementById('totalAmount').value = "0";
+        document.getElementById('totalQuantity').value = "0";
+        document.getElementById('printInvoiceBtn').style.display = "none";
+        document.getElementById('printTagBtn').style.display = "none";
+        document.getElementById('remoteInvoiceBtn').style.display = "none";
+        document.getElementById('remoteTagBtn').style.display = "none";
+        document.getElementById('whatsappInvoiceBtn').style.display = "none";
+        if (typeof prefillCallback === 'function') prefillCallback();
+      }).withFailureHandler(function(e){
+        document.getElementById('orderError').textContent = 'Unable to get new order number: '+(e.message||e);
+        document.getElementById('orderError').className = 'error';
+      }).getNewOrderDetails(activeToken);
+    }
+
+    function addItemRow() {
+      let items = Array.from(document.querySelectorAll('.itemRow')).map(function(row){
+        return {
+          service: row.querySelector('.service').value,
+          item: row.querySelector('.item').value,
+          rate: row.querySelector('.rate').value,
+          qty: row.querySelector('.qty').value,
+          weight: row.querySelector('.weight').value,
+          amt: row.querySelector('.amt').value
+        };
+      });
+      items.push({service: "", item: "", rate: "", qty: "", weight: "", amt: ""});
+      renderItemsTable(items);
+    }
+
+    function renderItemsTable(items) {
+      let html = `<table><thead><tr>
+        <th>Service</th><th>Item</th><th>Rate</th><th>Qty</th><th>Amount</th><th></th></tr></thead><tbody>`;
+      for (let i = 0; i < items.length; i++) {
+        html += `<tr class="itemRow">
+          <td><select class="service" onchange="handleServiceChange(this)"><option value="">Select service</option>${serviceOptions.map(function(opt){ return `<option ${items[i].service===opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`; }).join('')}</select></td>
+          <td><div class="item-input-stack">
+            <input class="item" type="text" value="${escapeHtml(items[i].item || '')}" autocomplete="off" oninput="capitalizeInput(this)">
+            <input class="weight" type="number" value="${escapeHtml(items[i].weight || '')}" min="0" step="0.01" placeholder="Weight" aria-label="Weight" oninput="calcAmtRow(this)">
+          </div></td>
+          <td><input class="rate" type="number" value="${items[i].rate === '' || items[i].rate == null ? '' : Math.round(Number(items[i].rate) || 0)}" min="0" step="1" oninput="calcAmtRow(this)"></td>
+          <td><input class="qty" type="number" value="${items[i].qty || 0}" min="0" oninput="calcAmtRow(this)"></td>
+          <td><input class="amt" type="number" value="${Math.round(Number(items[i].amt) || 0)}" readonly></td>
+          <td>${items.length > 1 ? `<button class="btn remove-item-btn" type="button" title="Remove item" aria-label="Remove item" onclick="removeItemRow(${i})">&times;</button>` : ''}</td>
+        </tr>`;
+      }
+      html += `</tbody></table>`;
+      document.getElementById('itemsTable').innerHTML = html;
+      document.querySelectorAll('#itemsTable .service').forEach(function(select){
+        let row = select.closest('tr');
+        let isKg = /^(KG|KG WF)$/.test(select.value.trim().toUpperCase());
+        row.querySelector('.qty').disabled = false;
+        let weight = row.querySelector('.weight');
+        weight.disabled = !isKg;
+        weight.style.display = isKg ? 'block' : 'none';
+      });
+      calcTotal();
+    }
+
+    function calcAmtRow(el) {
+      let row = el.closest('tr');
+      let rate = +row.querySelector('.rate').value || 0;
+      let qty = +row.querySelector('.qty').value || 0;
+      let weight = +row.querySelector('.weight').value || 0;
+      let isKg = /^(KG|KG WF)$/.test(row.querySelector('.service').value.trim().toUpperCase());
+      row.querySelector('.amt').value = Math.round(rate * (isKg ? weight : qty));
+      calcTotal();
+    }
+
+    function handleServiceChange(select) {
+      let row = select.closest('tr');
+      let isKg = /^(KG|KG WF)$/.test(select.value.trim().toUpperCase());
+      let qty = row.querySelector('.qty');
+      let weight = row.querySelector('.weight');
+      qty.disabled = false;
+      weight.disabled = !isKg;
+      weight.style.display = isKg ? 'block' : 'none';
+      if(!isKg) weight.value = '';
+      calcAmtRow(select);
+    }
+
+    function removeItemRow(idx) {
+      let rows = Array.from(document.querySelectorAll('.itemRow'));
+      rows.splice(idx, 1);
+      let arr = rows.map(function(row){
+        return {
+          service: row.querySelector('.service').value,
+          item: row.querySelector('.item').value,
+          rate: row.querySelector('.rate').value,
+          qty: row.querySelector('.qty').value,
+          weight: row.querySelector('.weight').value,
+          amt: row.querySelector('.amt').value
+        };
+      });
+      renderItemsTable(arr);
+    }
+
+    function calcTotal() {
+      let items = document.querySelectorAll('.itemRow');
+      let sumAmt = 0, sumQty = 0;
+      items.forEach(function(row){
+        sumAmt += Number(row.querySelector('.amt').value) || 0;
+        sumQty += Number(row.querySelector('.qty').value) || 0;
+      });
+      document.getElementById('totalAmount').value = Math.round(sumAmt);
+      document.getElementById('totalQuantity').value = sumQty;
+    }
+
+    function saveOrder() {
+      let order = {
+        orderNumber: document.getElementById('orderNumber').value,
+        orderDate: document.getElementById('orderDate').value,
+        customerName: document.getElementById('customerName').value.trim(),
+        deliveryDate: document.getElementById('deliveryDate').value,
+        phone: document.getElementById('phone').value.trim(),
+        totalAmount: document.getElementById('totalAmount').value,
+        items: [],
+        sourceTokenNumber: sourceTokenNumber || ''
+      };
+      let rows = document.querySelectorAll('.itemRow');
+      rows.forEach(function(row){
+        order.items.push({
+          service: row.querySelector('.service').value,
+          item: row.querySelector('.item').value.trim(),
+          rate: row.querySelector('.rate').value,
+          qty: row.querySelector('.qty').value,
+          weight: row.querySelector('.weight').value,
+          amt: row.querySelector('.amt').value
+        });
+      });
+      let error = "";
+      if (!/^\d{10}$/.test(order.phone)) error = "Phone must be exactly 10 digits.";
+      else if (new Date(order.deliveryDate) < new Date(order.orderDate)) error = "Delivery date cannot be before order date.";
+      else if (!order.customerName) error = "Customer Name required.";
+      else if (order.items.length === 0 || order.items.every(function(i){ return !i.service && !i.item; })) error = "At least one item is required.";
+      else if (order.items.some(function(i){ return /^(KG|KG WF)$/.test(String(i.service).toUpperCase()) && !(Number(i.weight)>0); })) error = "Weight is required for KG service.";
+      if (!error && order.items.some(function(i){ return String(i.rate).trim()==='' || !Number.isFinite(Number(i.rate)) || Number(i.rate)<0; })) error = "Enter a valid rate for every item in Book Order.";
+      if (error) {
+        document.getElementById('orderError').textContent = error;
+        document.getElementById('orderError').className = 'error';
+        return;
+      }
+      document.getElementById('orderError').textContent = "";
+      try{order.requestId=bookingRequestId_('order',order);}catch(e){document.getElementById('orderError').textContent=e.message;return;}
+      document.getElementById('saveOrderBtn').disabled = true;
+      google.script.run.withSuccessHandler(function(result){
+        if(!result||!result.success||!result.orderNumber)throw new Error('Unexpected save reply: deploy matching backend v2.3.');
+        document.getElementById('orderNumber').value=result.orderNumber;
+        clearBookingRequest_('order');
+        document.getElementById('printInvoiceBtn').style.display = "inline-block";
+        document.getElementById('printTagBtn').style.display = "inline-block";
+        document.getElementById('remoteInvoiceBtn').style.display = "inline-block";
+        document.getElementById('remoteTagBtn').style.display = "inline-block";
+        document.getElementById('whatsappInvoiceBtn').style.display = "inline-block";
+        document.getElementById('orderError').textContent = "Order Saved!";
+        document.getElementById('orderError').className = 'success';
+        if (sourceTokenNumber) {
+          sourceTokenNumber = '';
+          if (currentUser && (currentUser.role==='admin' || currentUser.role==='manager')) loadTokens();
+        }
+      }).withFailureHandler(function(err){
+        document.getElementById('orderError').textContent = "Error: " + err;
+        document.getElementById('orderError').className = 'error';
+        document.getElementById('saveOrderBtn').disabled = false;
+      }).saveOrder(order, getActiveSessionToken());
+    }
+
+    function prepareAndroidPrintWindow(title) {
+      var win = null;
+      try {
+        win = window.open('', '_blank');
+        if(win && win.document){
+          win.document.open();
+          win.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+'</title></head><body style="font-family:Arial,sans-serif;padding:16px;">Preparing '+title+'...</body></html>');
+          win.document.close();
+        }
+      } catch(e) { win = null; }
+      return win;
+    }
+
+    function printHtmlOnAndroid(win, html, title) {
+      var mobileStyle = '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+        '<style>*{box-sizing:border-box}html,body{width:100%;max-width:100%;margin:0;overflow-x:hidden}'+
+        'body{padding:10px;font-family:Arial,sans-serif}img,table{max-width:100%!important}'+
+        'table{width:100%!important;table-layout:fixed;border-collapse:collapse}th,td{overflow-wrap:anywhere;word-break:break-word}'+
+        '@media print{body{padding:0}}</style>';
+      var documentHtml = String(html||'');
+      if(/<head[\s>]/i.test(documentHtml)){
+        documentHtml = documentHtml.replace(/<head([^>]*)>/i, '<head$1>'+mobileStyle);
+      } else {
+        documentHtml = '<!doctype html><html><head><title>'+title+'</title>'+mobileStyle+'</head><body>'+documentHtml+'</body></html>';
+      }
+      if(win && !win.closed && win.document){
+        win.document.open();
+        win.document.write(documentHtml);
+        win.document.close();
+        setTimeout(function(){
+          try { win.focus(); win.print(); } catch(e) {}
+        }, 700);
+        return;
+      }
+      var frame = document.createElement('iframe');
+      frame.style.position = 'fixed';
+      frame.style.left = '0';
+      frame.style.bottom = '0';
+      frame.style.width = '1px';
+      frame.style.height = '1px';
+      frame.style.border = '0';
+      frame.style.opacity = '0';
+      document.body.appendChild(frame);
+      var doc = frame.contentWindow.document;
+      doc.open(); doc.write(documentHtml); doc.close();
+      setTimeout(function(){
+        try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch(e) {
+          alert('Android print service is unavailable. Enable a print service or Save as PDF in Android settings.');
+        }
+        setTimeout(function(){ if(frame.parentNode) frame.parentNode.removeChild(frame); }, 1500);
+      }, 700);
+    }
+
+    function isAndroidDevice(){
+      return /Android/i.test(navigator.userAgent||'');
+    }
+
+    function showAndroidAction(title, message, url, buttonText){
+      var old = document.getElementById('androidActionOverlay');
+      if(old) old.remove();
+      var overlay = document.createElement('div');
+      overlay.id = 'androidActionOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px;';
+      var box = document.createElement('div');
+      box.style.cssText = 'width:100%;max-width:420px;background:#fff;border:3px solid #FFA500;border-radius:12px;padding:20px;text-align:center;';
+      var heading = document.createElement('h2'); heading.textContent = title;
+      var info = document.createElement('p'); info.textContent = message;
+      var action = document.createElement('a');
+      action.className = 'btn'; action.textContent = buttonText; action.href = url;
+      action.target = '_blank'; action.rel = 'noopener external';
+      action.style.cssText = 'display:block;width:100%;margin:12px 0;padding:14px;';
+      var close = document.createElement('button');
+      close.className = 'btn'; close.type = 'button'; close.textContent = 'Close';
+      close.style.cssText = 'display:block;width:100%;background:#666;';
+      close.onclick = function(){ overlay.remove(); };
+      box.appendChild(heading); box.appendChild(info); box.appendChild(action); box.appendChild(close);
+      overlay.appendChild(box); document.body.appendChild(overlay);
+    }
+
+    function openAndroidPdf(orderNumber, type){
+      var serverFunction = type==='Tag'?'saveTagPdfAndGetLink':'saveInvoicePdfAndGetLink';
+      google.script.run
+        .withSuccessHandler(function(url){
+          if(!url || String(url).indexOf('Error')===0){
+            alert('Unable to create '+type+' PDF: '+(url||'Unknown error'));
+            return;
+          }
+          showAndroidAction(type+' Ready', 'Tap below to open the PDF in Android. Then use Print or Save as PDF.', url, 'Open '+type+' PDF');
+        })
+        .withFailureHandler(function(e){ alert('Unable to create '+type+' PDF: '+(e.message||e)); })
+        [serverFunction](orderNumber, getActiveSessionToken());
+    }
+
+    function printInvoice() {
+      const orderNumber = document.getElementById('orderNumber').value;
+      if (!orderNumber) {
+        alert("No order number available. Please save the order first.");
+        return;
+      }
+      if(isAndroidDevice()){ openAndroidPdf(orderNumber, 'Invoice'); return; }
+      const win = prepareAndroidPrintWindow('Invoice');
+      google.script.run
+        .withSuccessHandler(function(html){ printHtmlOnAndroid(win, html, 'Invoice'); })
+        .withFailureHandler(function(e){ if(win) win.close(); alert('Unable to generate invoice: '+(e.message||e)); })
+        .generateInvoice(orderNumber, getActiveSessionToken());
+    }
+
+    function printTag() {
+      const orderNumber = document.getElementById('orderNumber').value;
+      if (!orderNumber) {
+        alert("No order number available. Please save the order first.");
+        return;
+      }
+      if(isAndroidDevice()){ openAndroidPdf(orderNumber, 'Tag'); return; }
+      const win = prepareAndroidPrintWindow('Tag');
+      google.script.run
+        .withSuccessHandler(function(html){ printHtmlOnAndroid(win, html, 'Tag'); })
+        .withFailureHandler(function(e){ if(win) win.close(); alert('Unable to generate tag: '+(e.message||e)); })
+        .generateTag(orderNumber, getActiveSessionToken());
+    }
+
+    function searchOrder() {
+      const num = document.getElementById('searchOrderNumber').value.trim();
+      if (!num) return alert("Enter an order number to search.");
+      google.script.run.withSuccessHandler(showOrderDetail).getOrderDetails(num, getActiveSessionToken());
+    }
+
+    function showOrderDetail(obj) {
+      const container = document.getElementById('searchResult');
+      if (!obj) {
+        container.textContent = "Order not found.";
+        return;
+      }
+      let html = `<div class='table-holder bordered'>
+        <b>Customer:</b> ${obj.customerName} | <b>Phone:</b> ${obj.phone} | <b>Order Date:</b> ${obj.orderDate} | <b>Delivery Date:</b> ${obj.deliveryDate}<br>
+        <table><tr><th>Service</th><th>Item</th><th>Rate</th><th>Qty</th><th>Weight</th><th>Amt</th></tr>`;
+      obj.items.forEach(function(it){
+        html += `<tr><td>${it.service}</td><td>${it.item}</td><td>${it.rate}</td><td>${it.qty}</td><td>${it.weight||''}</td><td>${it.amt}</td></tr>`;
+      });
+      html += `</table>
+        <div class='form-row'>
+          <label>Actual Delivery Date:</label><input type='date' id='actDeliveryDate' value='${obj.today}'>
+        </div>
+        <div class='form-row'>
+          <label>Amount Paid:</label><input type='number' id='amountPaid' step='1' value='${Math.round(Number(obj.totalAmount)||0)}'>
+        </div>
+        <div class='form-row'>
+          <label>Payment Mode:</label>
+          <input type='hidden' id='payMode' value='Cash'>
+          <div class='payment-mode-buttons'>
+            <button type='button' class='btn payment-mode-btn active' onclick='setPaymentMode("Cash",this)'>Cash</button>
+            <button type='button' class='btn payment-mode-btn' onclick='setPaymentMode("Paytm",this)'>Paytm</button>
+          </div>
+        </div>
+        <div class='form-row'>
+          <label style='align-self: flex-start;'>Remarks:</label>
+          <textarea id='deliveryRemarks' placeholder='Enter any remarks about this delivery...' style='flex: 1; min-height: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;'>${obj.remarks || ''}</textarea>
+        </div>
+        <div class='form-row'>
+          <button class='btn' onclick='saveDelivery(${obj.orderNumber})'>Save Delivery</button>
+        </div></div>`;
+      container.innerHTML = safeDisplayHtml_(html);
+    }
+
+    function setPaymentMode(mode, button) {
+      document.getElementById('payMode').value = mode;
+      document.querySelectorAll('.payment-mode-btn').forEach(function(btn){
+        btn.classList.remove('active');
+      });
+      button.classList.add('active');
+    }
+
+    function saveDelivery(orderNumber) {
+      const actualDate = document.getElementById('actDeliveryDate').value;
+      const amtPaid = document.getElementById('amountPaid').value;
+      const mode = document.getElementById('payMode').value;
+      const remarks = document.getElementById('deliveryRemarks').value;
+      
+      google.script.run.withSuccessHandler(function(msg){
+        document.getElementById('searchResult').innerHTML = `<div class="success">${escapeHtml(msg)}</div>`;
+        loadTokens();
+      }).withFailureHandler(function(error){
+        document.getElementById('searchResult').innerHTML = `<div class="error">${escapeHtml(String(error))}</div>`;
+      }).saveDelivery({ 
+        orderNumber: orderNumber, 
+        actualDate: actualDate, 
+        amtPaid: amtPaid, 
+        mode: mode, 
+        remarks: remarks 
+      }, getActiveSessionToken());
+    }
+
+    function printInvoiceFromTab() {
+      const orderNumber = document.getElementById('invoiceOrderNo').value.trim();
+      if (!orderNumber) return alert("Enter order number.");
+      if(isAndroidDevice()){ openAndroidPdf(orderNumber, 'Invoice'); return; }
+      const win = prepareAndroidPrintWindow('Invoice');
+      google.script.run
+        .withSuccessHandler(function(html){ printHtmlOnAndroid(win, html, 'Invoice'); })
+        .withFailureHandler(function(e){ if(win) win.close(); alert('Unable to generate invoice: '+(e.message||e)); })
+        .generateInvoice(orderNumber, getActiveSessionToken());
+    }
+
+    function printTagFromTab() {
+      const orderNumber = document.getElementById('tagOrderNo').value.trim();
+      if (!orderNumber) return alert("Enter order number.");
+      if(isAndroidDevice()){ openAndroidPdf(orderNumber, 'Tag'); return; }
+      const win = prepareAndroidPrintWindow('Tag');
+      google.script.run
+        .withSuccessHandler(function(html){ printHtmlOnAndroid(win, html, 'Tag'); })
+        .withFailureHandler(function(e){ if(win) win.close(); alert('Unable to generate tag: '+(e.message||e)); })
+        .generateTag(orderNumber, getActiveSessionToken());
+    }
+
+    function showRemotePrintResult_(res) {
+      if (!res || !res.success) {
+        alert('Unable to queue remote print.');
+        return;
+      }
+      alert(res.printType + ' queued successfully.\nJob: ' + res.jobId +
+            '\nPrinter: ' + res.printer + '\nCopies: ' + res.copies);
+    }
+
+    function remotePrintTag_(orderNumber) {
+      if (!orderNumber) return alert('Enter an order number.');
+      google.script.run
+        .withSuccessHandler(showRemotePrintResult_)
+        .withFailureHandler(function(e){ alert('Remote tag print failed: ' + (e.message || e)); })
+        .queueRemoteTagPrint(orderNumber, getActiveSessionToken());
+    }
+
+    function remotePrintInvoice_(orderNumber) {
+      if (!orderNumber) return alert('Enter an order number.');
+      google.script.run
+        .withSuccessHandler(showRemotePrintResult_)
+        .withFailureHandler(function(e){ alert('Remote invoice print failed: ' + (e.message || e)); })
+        .queueRemoteInvoicePrint(orderNumber, getActiveSessionToken());
+    }
+
+    function remotePrintTagFromOrder() {
+      remotePrintTag_(document.getElementById('orderNumber').value.trim());
+    }
+    function remotePrintInvoiceFromOrder() {
+      remotePrintInvoice_(document.getElementById('orderNumber').value.trim());
+    }
+    function remotePrintTagFromTab() {
+      remotePrintTag_(document.getElementById('tagOrderNo').value.trim());
+    }
+    function remotePrintInvoiceFromTab() {
+      remotePrintInvoice_(document.getElementById('invoiceOrderNo').value.trim());
+    }
+
+    function checkOrderStatus() {
+      const orderNumber = document.getElementById('statusOrderNo').value.trim();
+      if (!orderNumber) return alert("Enter order number.");
+      google.script.run.withSuccessHandler(function(res){
+        if (res) document.getElementById('orderStatusResult').textContent = "Status: " + res;
+        else document.getElementById('orderStatusResult').textContent = "Order not found";
+        if (res === "Processing" || res === "TagPrinted") {
+          document.getElementById('completeOrderBtn').style.display = "inline-block";
+        } else {
+          document.getElementById('completeOrderBtn').style.display = "none";
+        }
+      }).getOrderStatus(orderNumber, getActiveSessionToken());
+    }
+
+    function markOrderCompleted() {
+      const orderNumber = document.getElementById('statusOrderNo').value.trim();
+      if (!orderNumber) return alert("No order selected.");
+      google.script.run.withSuccessHandler(function(res){
+        alert(res);
+        document.getElementById('orderStatusResult').textContent = "Status: Completed";
+        document.getElementById('completeOrderBtn').style.display = "none";
+      }).setOrderCompleted(orderNumber, getActiveSessionToken());
+    }
+
+    function generateDailyOrders() {
+      google.script.run.withSuccessHandler(function(data){
+        let html = '<table><tr><th>Delivery Date</th><th>Order No</th><th>Customer Name</th><th>Total Order Quantity</th><th>Status</th></tr>';
+        data.forEach(function(r){
+          html += `<tr><td>${escapeHtml(String(r.deliveryDate == null ? "" : r.deliveryDate))}</td><td>${escapeHtml(String(r.orderNumber == null ? "" : r.orderNumber))}</td><td>${escapeHtml(String(r.customerName == null ? "" : r.customerName))}</td><td>${r.totalQty}</td><td>${escapeHtml(String(r.status == null ? "" : r.status))}</td></tr>`;
+        });
+        html += '</table>';
+        document.getElementById('dailyOrdersReport').innerHTML = safeDisplayHtml_(html);
+      }).generateReport('daily', null, null, getActiveSessionToken());
+    }
+    
+    function generateCompletedOrders() {
+      google.script.run.withSuccessHandler(function(data){
+        let html = '<table><tr><th>Delivery Date</th><th>Order No</th><th>Customer Name</th><th>Total Order Quantity</th><th>Status</th></tr>';
+        data.forEach(function(r){
+          html += `<tr><td>${escapeHtml(String(r.deliveryDate == null ? "" : r.deliveryDate))}</td><td>${escapeHtml(String(r.orderNumber == null ? "" : r.orderNumber))}</td><td>${escapeHtml(String(r.customerName == null ? "" : r.customerName))}</td><td>${r.totalQty}</td><td>${escapeHtml(String(r.status == null ? "" : r.status))}</td></tr>`;
+        });
+        html += '</table>';
+        document.getElementById('completedOrdersReport').innerHTML = safeDisplayHtml_(html);
+      }).generateCompletedOrderReport(getActiveSessionToken());
+    }
+    
+    function printCompletedOrders() {
+      const content = document.getElementById('completedOrdersReport').innerHTML;
+      const win = window.open('', '_blank', 'width=900,height=600');
+      win.document.write('<html><head><title>Completed Order Report</title></head><body><h2>Completed Order Report</h2>' + content + '</body></html>');
+      win.document.close(); win.focus(); win.print();
+    }
+
+    function generateDeliveryReport() {
+      const start = document.getElementById('deliveryStart').value;
+      const end = document.getElementById('deliveryEnd').value;
+      if (!start || !end) {
+        alert("Please select both start and end dates.");
+        return;
+      }
+      google.script.run.withSuccessHandler(function(data){
+        let rows = data.records || [];
+        let totals = data.totals || { Cash: 0, Paytm: 0 };
+        if (rows.length === 0) {
+          document.getElementById('deliveryReport').innerHTML = '<p>No records found for the selected dates.</p>';
+          return;
+        }
+        let html = '<table><tr><th>Actual Delivery</th><th>Order No</th><th>Customer</th><th>Paid Amount</th><th>Payment Mode</th><th>Remarks</th></tr>';
+        rows.forEach(function(r){
+          html += `<tr>
+            <td>${escapeHtml(String(r.actualDate == null ? "" : r.actualDate))}</td>
+            <td>${escapeHtml(String(r.orderNumber == null ? "" : r.orderNumber))}</td>
+            <td>${escapeHtml(String(r.customerName == null ? "" : r.customerName))}</td>
+            <td>\u20B9${Math.round(Number(r.amtPaid)||0)}</td>
+            <td>${r.mode.charAt(0).toUpperCase() + r.mode.slice(1)}</td>
+            <td style="max-width: 200px; word-wrap: break-word;">${r.remarks || '-'}</td>
+          </tr>`;
+        });
+        html += '</table>';
+        html += `<p><b>Total Cash:</b> \u20B9${Math.round(totals.Cash||0)}</p>`;
+        html += `<p><b>Total Paytm:</b> \u20B9${Math.round(totals.Paytm||0)}</p>`;
+        document.getElementById('deliveryReport').innerHTML = safeDisplayHtml_(html);
+      }).generateDeliveryReport(start, end, getActiveSessionToken());
+    }
+
+    function generateCustomerHistory() {
+      const phone = document.getElementById('custPhone').value.trim();
+      if (!phone) return alert("Enter phone number");
+      google.script.run.withSuccessHandler(function(data){
+        if (!data || data.length === 0) {
+          document.getElementById('customerHistory').innerHTML = '<p>No history found for this phone number.</p>';
+          return;
+        }
+        let html = '<table><tr><th>Order No</th><th>Order Date</th><th>Delivery Date</th><th>Bill Amt</th><th>Paid Amt</th><th>Payment Mode</th><th>Remarks</th></tr>';
+        data.forEach(function(r){
+          html += `<tr>
+            <td>${escapeHtml(String(r.orderNumber == null ? "" : r.orderNumber))}</td>
+            <td>${escapeHtml(String(r.orderDate == null ? "" : r.orderDate))}</td>
+            <td>${escapeHtml(String(r.deliveryDate == null ? "" : r.deliveryDate))}</td>
+            <td>${Math.round(Number(r.totalAmount)||0)}</td>
+            <td>${Math.round(Number(r.amtPaid)||0)}</td>
+            <td>${escapeHtml(String(r.mode == null ? "" : r.mode))}</td>
+            <td style="max-width: 200px; word-wrap: break-word;">${r.remarks || '-'}</td>
+          </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('customerHistory').innerHTML = safeDisplayHtml_(html);
+      }).generateCustomerHistory(phone, getActiveSessionToken());
+    }
+
+    function generateOrderDateReport() {
+      const start = document.getElementById('orderDateStart').value;
+      const end = document.getElementById('orderDateEnd').value;
+      if (!start || !end) {
+        alert("Please select both start and end dates.");
+        return;
+      }
+      google.script.run.withSuccessHandler(function(data){
+        if (!data || !data.orders || data.orders.length === 0) {
+          document.getElementById('orderDateReport').innerHTML = '<p>No orders found for the selected date range.</p>';
+          document.getElementById('orderDateTotals').innerHTML = "";
+          return;
+        }
+        let html = '<table><tr><th>Order Date</th><th>Order No</th><th>Customer Name</th><th>Delivery Date</th><th>Total Amount</th><th>Status</th><th>Total Quantity</th></tr>';
+        data.orders.forEach(function(r){
+          html += `<tr>
+            <td>${escapeHtml(String(r.orderDate == null ? "" : r.orderDate))}</td><td>${escapeHtml(String(r.orderNumber == null ? "" : r.orderNumber))}</td><td>${escapeHtml(String(r.customerName == null ? "" : r.customerName))}</td><td>${escapeHtml(String(r.deliveryDate == null ? "" : r.deliveryDate))}</td><td>${Math.round(Number(r.totalAmount)||0)}</td><td>${escapeHtml(String(r.status == null ? "" : r.status))}</td><td>${r.totalQty}</td>
+          </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('orderDateReport').innerHTML = safeDisplayHtml_(html);
+        document.getElementById('orderDateTotals').innerHTML = `<div style="margin-top:10px; font-weight:bold;">
+          Total Order Amount: \u20B9${Math.round(data.totalAmountSum||0)}<br>
+          Total Order Quantity: ${data.totalQtySum}
+        </div>`;
+      }).generateReport('orderDateRange', start, end, getActiveSessionToken());
+    }
+
+    function printDailyOrders() {
+      const content = document.getElementById('dailyOrdersReport').innerHTML;
+      const win = window.open('', '_blank', 'width=900,height=600');
+      win.document.write('<html><head><title>Pending Order Report</title></head><body><h2>Pending Order Report</h2>' + content + '</body></html>');
+      win.document.close(); win.focus(); win.print();
+    }
+    function printDeliveryReport() {
+      const content = document.getElementById('deliveryReport').innerHTML;
+      const win = window.open('', '_blank', 'width=900,height=600');
+      win.document.write('<html><head><title>Delivery Report</title></head><body><h2>Delivery Report</h2>' + content + '</body></html>');
+      win.document.close(); win.focus(); win.print();
+    }
+    function printCustomerHistory() {
+      const content = document.getElementById('customerHistory').innerHTML;
+      const win = window.open('', '_blank', 'width=900,height=600');
+      win.document.write('<html><head><title>Customer History</title></head><body><h2>Customer History</h2>' + content + '</body></html>');
+      win.document.close(); win.focus(); win.print();
+    }
+    function printOrderDateReport() {
+      const content = document.getElementById('orderDateReport').innerHTML + document.getElementById('orderDateTotals').innerHTML;
+      const win = window.open('', '_blank', 'width=900,height=600');
+      win.document.write('<html><head><title>Order Date Range Report</title></head><body><h2>Order Date Range Report</h2>' + content + '</body></html>');
+      win.document.close(); win.focus(); win.print();
+    }
+
+    function uploadLogo() {
+      const fileInput = document.getElementById('logoInput');
+      if (fileInput.files.length === 0) return alert("Please select an image file.");
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const base64 = e.target.result.split(',')[1];
+        google.script.run.withSuccessHandler(function(){
+          alert("Logo uploaded!");
+          google.script.run.withSuccessHandler(setLogo).getLogo(getActiveSessionToken());
+        }).uploadLogo(base64, getActiveSessionToken());
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+    
+    function saveAndSendInvoiceWhatsapp() {
+      const activeToken = getActiveSessionToken();
+      if (!activeToken) {
+        alert('Please login first.');
+        return;
+      }
+
+      const orderNumber = document.getElementById('orderNumber').value;
+      const phone = document.getElementById('phone').value.trim();
+      const customerName = document.getElementById('customerName').value.trim();
+      const totalAmount = document.getElementById('totalAmount').value;
+      const totalQuantity = document.getElementById('totalQuantity').value;
+
+      if (!orderNumber || !phone || !customerName) {
+        alert('Please save the order first and ensure Order Number, Customer Name, and Phone are filled.');
+        return;
+      }
+
+      const isAndroid = /Android/i.test(navigator.userAgent||'');
+      let whatsappWindow = null;
+      if(!isAndroid){
+        whatsappWindow = window.open('about:blank','LaundryBazaarWhatsApp');
+        if(!whatsappWindow){
+          alert('WhatsApp Web popup was blocked. Please allow popups for this site and press Open WhatsApp again.');
+          return;
+        }
+        whatsappWindow.document.write('<!doctype html><html><head><title>WhatsApp</title></head><body style="font-family:Arial,sans-serif;font-size:12px;font-weight:bold;padding:20px;">Preparing invoice for WhatsApp Web...</body></html>');
+        whatsappWindow.document.close();
+      }
+
+      google.script.run
+        .withSuccessHandler(function(fileUrl) {
+          if (!fileUrl || String(fileUrl).indexOf('Error ') === 0 || String(fileUrl).indexOf('Error generating PDF') === 0) {
+            if(whatsappWindow) whatsappWindow.close();
+            alert('Unable to generate invoice PDF: ' + (fileUrl || 'Unknown error'));
+            return;
+          }
+
+          const countryCode = '91';
+          let phoneNumber = phone.replace(/\D/g, '');
+          if (phoneNumber.length === 10) phoneNumber = countryCode + phoneNumber;
+
+          const message = encodeURIComponent(
+            `Hello ${customerName}, your invoice from Laundry Bazaar is ready.\n` +
+            `Order Number: ${orderNumber}\n` +
+            `Total Amount: \u20B9${totalAmount}\n` +
+            `Total Quantity: ${totalQuantity}\n` +
+            `Download Invoice: ${fileUrl}`
+          );
+
+          const whatsappUrl = isAndroid
+            ? `https://wa.me/${phoneNumber}?text=${message}`
+            : `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
+          if(isAndroid){
+            showAndroidAction('WhatsApp Ready','Tap below to open this chat in the WhatsApp app installed on your device.',whatsappUrl,'Open WhatsApp');
+          } else {
+            try {
+              whatsappWindow.location.href = whatsappUrl;
+              whatsappWindow.focus();
+            } catch(e) {
+              alert('Unable to open WhatsApp Web. Please allow popups and try again.');
+            }
+          }
+        })
+        .withFailureHandler(function(error) {
+          if(whatsappWindow) whatsappWindow.close();
+          alert('Error generating invoice: ' + (error && error.message ? error.message : error));
+        })
+        .saveInvoicePdfAndGetLink(orderNumber, activeToken);
+    }
+
+    function manualSendDailyReport() {
+      google.script.run.withSuccessHandler(function(result) {
+        document.getElementById('adminResult').innerHTML = '<div class="success">' + result + '</div>';
+      }).withFailureHandler(function(error) {
+        document.getElementById('adminResult').innerHTML = '<div class="error">' + error + '</div>';
+      }).manualSendDailyReport(getActiveSessionToken());
+    }
+
+    function createEmailTrigger() {
+      google.script.run.withSuccessHandler(function(result) {
+        document.getElementById('adminResult').innerHTML = '<div class="success">' + result + '</div>';
+      }).withFailureHandler(function(error) {
+        document.getElementById('adminResult').innerHTML = '<div class="error">' + error + '</div>';
+      }).createDailyEmailTrigger(getActiveSessionToken());
+    }
+
+    function checkEmailTriggers() {
+      google.script.run.withSuccessHandler(function(result) {
+        document.getElementById('adminResult').innerHTML = '<div class="info"><strong>Current Triggers:</strong><br>' + result.join('<br>') + '</div>';
+      }).withFailureHandler(function(error) {
+        document.getElementById('adminResult').innerHTML = '<div class="error">' + error + '</div>';
+      }).checkTriggers(getActiveSessionToken());
+    }
+
+    function testSystem() {
+      google.script.run.withSuccessHandler(function(result) {
+        document.getElementById('adminResult').innerHTML = '<div class="info"><strong>System Test Results:</strong><br>' + result.join('<br>') + '</div>';
+      }).withFailureHandler(function(error) {
+        document.getElementById('adminResult').innerHTML = '<div class="error">' + error + '</div>';
+      }).testSystem(getActiveSessionToken());
+    }
+  </script>
+<script>
+// Guided Token: each final answer is handled once; no network AI service is used.
+var guidedVoice_ = {
+  active:false, state:'', epoch:0, promptId:'', listening:false, recognition:null,
+  timer:null, phoneBuffer:'', itemIndex:0, lastAuto:'', loadingToken:false, suppressAutoOnce:false,
+  el:function(id){return document.getElementById(id);},
+  value:function(id){return this.el(id).value.trim();},
+  cancelInput:function(){
+    this.listening=false;
+    if(this.timer){clearTimeout(this.timer);this.timer=null;}
+    if(this.recognition){var r=this.recognition;this.recognition=null;try{r.abort();}catch(e){}}
+    if(window.AndroidVoice&&window.AndroidVoice.stopRecognition)window.AndroidVoice.stopRecognition();
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+  },
+  stop:function(show){
+    this.active=false;this.epoch++;this.promptId='';this.cancelInput();
+    if(show)this.el('guidedQuestion').textContent='बातचीत रुकी। भरी हुई जानकारी सुरक्षित है। जाँचें या फिर शुरू करें।';
+  },
+  fail:function(message){this.stop(false);this.el('guidedQuestion').textContent=message+' फिर शुरू करें दबाएँ या manual form भरें।';},
+  setAuto:function(box){
+    if(box.checked&&!confirm('Token खोलने पर ऐप सवाल बोलेगा और microphone से जवाब सुनेगा। क्या आप इसे चालू करना चाहते हैं?'))box.checked=false;
+    localStorage.setItem('lbGuidedAutoStart',box.checked?'yes':'no');
+    if(box.checked){this.lastAuto='';this.maybeAuto();}else if(this.active)this.stop(true);
+  },
+  maybeAuto:function(){
+    var enabled=localStorage.getItem('lbGuidedAutoStart')==='yes';
+    this.el('guidedAutoStart').checked=enabled;
+    if(!enabled||this.active||this.loadingToken||!currentUser||!tokenServicesReady_||!this.el('tokenSection').classList.contains('active')||document.hidden)return;
+    var number=this.value('tokenNumber');if(!number||this.lastAuto===number)return;
+    if(this.suppressAutoOnce){this.lastAuto=number;this.suppressAutoOnce=false;return;}
+    // Browser autoplay restrictions require an explicit Start gesture. Native app supports opt-in auto-start.
+    if(!window.AndroidVoice||!window.AndroidVoice.speakPrompt){this.el('guidedQuestion').textContent='सवाल-जवाब के लिए शुरू करें दबाएँ। Auto-start के लिए updated Android app चाहिए।';return;}
+    this.start();
+  },
+  start:function(){
+    if(!currentUser||!getActiveSessionToken()){this.el('guidedQuestion').textContent='पहले backend से login पूरा करें।';return;}
+    if(this.loadingToken||!this.value('tokenNumber')){this.el('guidedQuestion').textContent='पहले New दबाकर backend से Token Number लें।';return;}
+    if(!tokenServicesReady_){this.el('guidedQuestion').textContent='पहले Reload services दबाएँ।';return;}
+    stopVoiceToken();this.stop(false);this.active=true;this.phoneBuffer='';
+    this.lastAuto=this.value('tokenNumber');this.el('guidedTranscript').textContent='';
+    this.ask('phone','आपका फोन नंबर क्या है? दस अंकों का नंबर बोलें।');
+  },
+  ask:function(state,question){
+    if(!this.active)return;
+    this.el('guidedVoicePanel').open=true;
+    this.cancelInput();this.state=state;this.epoch++;
+    var id='g'+this.epoch,self=this;this.promptId=id;
+    this.el('guidedQuestion').textContent=question;this.el('guidedAnswer').value='';
+    var controls=this.el('guidedQuickAnswers');
+    if(!controls){controls=document.createElement('div');controls.id='guidedQuickAnswers';controls.innerHTML='<button type="button" class="btn">हाँ / Yes</button> <button type="button" class="btn">नहीं / No</button>';this.el('guidedAnswer').parentNode.appendChild(controls);var self=this;controls.children[0].onclick=function(){self.el('guidedAnswer').value='हाँ';self.submitTyped();};controls.children[1].onclick=function(){self.el('guidedAnswer').value='नहीं';self.submitTyped();};}
+    controls.hidden=!/^(confirm_entry|more|review)$/.test(state);
+    if(window.AndroidVoice&&window.AndroidVoice.speakPrompt){window.AndroidVoice.speakPrompt(question,id);return;}
+    if(window.AndroidVoice&&!window.AndroidVoice.speakPrompt){
+      this.el('guidedQuestion').textContent=question+' (आवाज़ के लिए Android v1.5 install करें; अभी जवाब लिख सकते हैं।)';return;
+    }
+    if(window.speechSynthesis&&typeof SpeechSynthesisUtterance!=='undefined'){
+      var speech=new SpeechSynthesisUtterance(question);speech.lang='hi-IN';speech.rate=1.05;
+      speech.onend=function(){self.promptDone(id);};speech.onerror=function(){self.promptDone(id);};
+      window.speechSynthesis.speak(speech);
+    }else this.promptDone(id);
+  },
+  promptDone:function(id){
+    if(!this.active||this.promptId!==id||this.listening)return;
+    this.promptId='';this.listen();
+  },
+  listen:function(){
+    if(!this.active||document.hidden)return;
+    var self=this,epoch=this.epoch;this.listening=true;
+    if(window.AndroidVoice&&window.AndroidVoice.speakPrompt){window.AndroidVoice.startRecognition(this.state==='confirm_entry'&&window.AndroidVoice.fastGuided?'guided-fast':'guided');return;}
+    if(window.AndroidVoice)return;
+    var Recognition=voiceRecognitionClass_();
+    if(!Recognition){this.el('guidedTranscript').textContent='Microphone उपलब्ध नहीं है। नीचे जवाब लिखें।';return;}
+    var recognition=new Recognition();this.recognition=recognition;
+    recognition.lang='hi-IN';recognition.interimResults=true;recognition.continuous=false;
+    recognition.onresult=function(event){
+      if(!self.active||self.epoch!==epoch||!self.listening)return;
+      var text='';for(var i=0;i<event.results.length;i++)text+=event.results[i][0].transcript+' ';
+      self.el('guidedTranscript').textContent=text.trim();
+      if(event.results[event.results.length-1].isFinal)self.receive(text.trim());
+    };
+    recognition.onerror=function(event){if(self.active&&self.epoch===epoch&&event.error!=='no-speech'&&event.error!=='aborted')self.fail('Microphone: '+event.error);};
+    recognition.onend=function(){
+      if(self.active&&self.epoch===epoch&&self.listening){self.recognition=null;self.timer=setTimeout(function(){if(self.active&&self.epoch===epoch)self.listen();},500);}
+    };
+    try{recognition.start();}catch(e){this.fail('Microphone शुरू नहीं हुआ: '+e.message);}
+  },
+  submitTyped:function(){
+    var answer=this.value('guidedAnswer');if(!this.active||this.state==='lookup'||!answer)return;
+    this.cancelInput();this.promptId='';this.listening=true;this.receive(answer);
+  },
+  yesNo:function(text){
+    var s=voiceClean_(String(text).toLowerCase()).replace(/[.!?।]+$/g,'').trim();
+    if(/^(?:haan|haa|han|ha|हाँ|हां|yes)(?:\s+(?:haan|haa|han|ha|हाँ|हां|yes))*$/.test(s))return true;
+    if(/^(?:hanji|haan ji|ha ji|हाँ जी|हां जी|जी हाँ जी|जी हां जी|yes please|yes ji|yeah|yep|yup|okay|ok|ठीक|ठीक है|सही|सही है|बिल्कुल|bilkul|theek hai|thik hai|sahi hai)$/.test(s))return true;
+    if(/^(?:नहीं जी|नही जी|जी नहीं|जी नही|नहीं नहीं|no no|nope|no thanks|nah|na|nahi ji|nahin ji|गलत|गलत है|wrong)$/.test(s))return false;
+    if(/^(?:हाँ|हां|जी हाँ|जी हां|हां सेव करो|हाँ सेव करो|हां सेव कर दो|हाँ सेव कर दो|सेव करो|yes|yes save|yes save it|haa|haan|han|ha|save|save token|जी)$/.test(s))return true;
+    if(/^(?:नहीं|नही|ना|बस|नहीं और|no|no more|nahi|nahin|bas)$/.test(s))return false;
+    return null;
+  },
+  rows:function(){return getTokenItemsForSave_();},
+  validEntry:function(state,text){
+    if(state==='phone'){var p=voiceReadPhone_(text.replace(/^(?:phone|mobile|फोन|मोबाइल)(?:\s*(?:number|नंबर))?\s*/i,''));return p.value.length>0&&!p.rest.trim()&&!p.error;}
+    if(state==='name'){return hindiFormText_(text)&&this.yesNo(text)===null&&text.trim().split(/\s+/).length<=6;}
+    if(state==='date'){
+      var dateWords=voiceNumberText_(text).toLowerCase().replace(/(?:delivery|date|today|tomorrow|day after tomorrow|parso|parson|narso|डिलीवरी|डिलिवरी|तारीख़?|तारिख|डेट|आज|परसों|परसो|नरसों|नरसो|कल|जनवरी|फरवरी|फ़रवरी|मार्च|अप्रैल|मई|जून|जुलाई|अगस्त|सितंबर|सितम्बर|अक्टूबर|नवंबर|नवम्बर|दिसंबर|दिसम्बर|january|february|march|april|may|june|july|august|september|october|november|december|देना|करना|है|को|की|में|तक|दिन)/gi,'').replace(/[\d\s.,/\-]+/g,'');
+      return !!voiceDateToIso_(text)&&!dateWords;
+    }
+    if(state==='remark')return this.yesNo(text)===false||hindiFormText_(text);
+    if(state==='rate'){var price=readVoiceRate_(text);return price.rate!==null&&!price.rest;}
+    if(state==='service')return !!resolveVoiceService_(text,false)||this.validEntry('weight',text);
+    if(state==='weight'){var t=voiceNumberText_(text).replace(/^(?:वजन|वज़न|weight)\s*/i,'');if(/^\d+(?:\.\d+)?$/.test(t))t+=' kg';var w=voiceReadItems_('1 Weight '+t);return w.items.length===1&&w.items[0].weight>0&&!w.issues.length;}
+    if(state==='item'){var r=voiceReadItems_(text);return r.items.length>0&&r.items.every(function(it){return Number.isInteger(it.qty)&&it.qty>0&&hindiFormText_(hindiItem_(it.item));})&&!r.issues.some(function(x){return !/^(Select the service|Weight is required)/.test(x);});}
+    return true;
+  },
+  correctItem:function(index){
+    if(!currentUser||!getActiveSessionToken())return;
+    var rows=getTokenItems();if(!rows[index])return;
+    if(rows[index].locked){alert('पहले item Unlock करें।');return;}
+    var target=rows[index],selectedIndex=rows.slice(0,index).filter(function(r){return !voiceIsBlankItem_(r);}).length;
+    rows=rows.filter(function(r){return !voiceIsBlankItem_(r);});
+    if(voiceIsBlankItem_(target))rows.splice(selectedIndex,0,target);
+    stopVoiceToken();this.render(rows);this.active=true;this.itemIndex=selectedIndex;this.entryPending=null;this.acceptEntryOnce=false;
+    this.ask('item','लाइन '+(index+1)+' सुधारें। पूरी quantity, item और service बोलें; जैसे तीन पैंट वॉश आयरन।');
+  },
+  render:function(rows){renderTokenItemsTable(rows);calcTokenTotals();},
+  afterDate:function(){
+    var rows=this.rows();if(rows.length){this.itemIndex=0;this.nextItemField();}else{this.itemIndex=0;this.ask('item','कितने और कौन से कपड़े हैं? जैसे, दो शर्ट वॉश आयरन।');}
+  },
+  nextItemField:function(){
+      var rows=this.rows();
+    for(var i=this.itemIndex;i<rows.length;i++){
+      this.itemIndex=i;var row=rows[i];
+      if(!row.item||!Number.isInteger(Number(row.qty))||Number(row.qty)<=0){this.ask('item','इस कपड़े की सही quantity और नाम बोलें।');return;}
+      if(!row.service){this.ask('service',row.qty+' '+row.item+' के लिए कौन सी service चाहिए? वॉश आयरन, प्रेस, ड्राई क्लीन, किलो या फोल्ड?');return;}
+      if(/^(KG|KG WF)$/.test(row.service)&&!(Number(row.weight)>0)){this.ask('weight',row.qty+' '+row.item+' का कुल वजन कितना है? जैसे तीन किलो चार सौ ग्राम।');return;}
+    }
+    this.ask('more','और कपड़े जोड़ने हैं? हाँ या नहीं बोलें।');
+  },
+  snapshot:function(){return JSON.stringify({phone:this.value('tokenPhone'),name:this.value('tokenCustomerName'),date:this.value('tokenDeliveryDate'),remark:this.value('tokenRemark'),items:this.rows()});},
+  review:function(){
+    var rows=this.rows();
+    if(!/^\d{10}$/.test(this.value('tokenPhone'))){this.ask('phone','सही दस अंकों का फोन नंबर बोलें।');return;}
+    if(!this.value('tokenCustomerName')){this.ask('name','आपका नाम क्या है?');return;}
+    if(!this.value('tokenDeliveryDate')){this.ask('date','डिलीवरी किस तारीख को चाहिए?');return;}
+    if(!rows.length){this.itemIndex=0;this.ask('item','पहले quantity और कपड़े का नाम बोलें।');return;}
+    var bad=rows.findIndex(function(r){return !r.item||!r.service||!Number.isInteger(Number(r.qty))||Number(r.qty)<=0||(/^(KG|KG WF)$/.test(r.service)&&!(Number(r.weight)>0));});
+    if(bad>=0){this.itemIndex=bad;this.nextItemField();return;}
+    var readable=rows.map(function(r){return r.qty+' '+r.item+', '+r.service+(/^(KG|KG WF)$/.test(r.service)?', वजन '+r.weight+' किलो':'')+(r.rate!==''&&r.rate!=null?', रेट '+r.rate+' रुपये':'');}).join('। ');
+    this.reviewSnapshot=this.snapshot();
+    this.ask('review','जाँच लें। नाम '+this.value('tokenCustomerName')+'। फोन '+this.value('tokenPhone').split('').join(' ')+'। डिलीवरी '+this.value('tokenDeliveryDate')+'। '+readable+'। रिमार्क '+(this.value('tokenRemark')||'नहीं')+'। टोकन सेव कर दूँ? हाँ या नहीं बोलें।');
+  },
+  receive:function(answer){
+    if(!this.active||!this.listening)return;
+    var text=voiceClean_(answer),self=this;if(!text)return;
+    this.cancelInput();this.promptId='';this.el('guidedTranscript').textContent=text;
+    if(/^(stop|cancel|रुको|रुकिए|बंद करो|रद्द करो)$/i.test(text)){this.stop(true);return;}
+    var state=this.state,rows=this.rows(),result;
+    var rateReply=readVoiceRate_(text);
+    if(state!=='confirm_entry'&&/^(more|service|weight|rate)$/.test(state)&&rateReply.rate!==null&&!rateReply.rest){state='rate';this.state=state;}
+    var correction=voiceNumberText_(text).match(/^(?:line|row|लाइन|पंक्ति)\s+(\d+)\s+(?:correct|edit|change|सुधारो|सुधारें|बदलो|बदलें)$/i);
+    if(correction){var index=Number(correction[1])-1;if(index>=0&&index<getTokenItems().length)this.correctItem(index);else this.ask(state,'यह लाइन नहीं मिली। सही लाइन नंबर बोलें।');return;}
+    if(state==='confirm_entry'){
+      var pending=this.entryPending,accepted=this.yesNo(text);
+      if(!pending){this.stop(true);return;}
+      if(accepted===true){this.entryPending=null;this.state=pending.state;this.acceptEntryOnce=true;this.listening=true;this.receive(pending.text);}
+      else if(accepted===false){this.entryPending=null;this.el('guidedTranscript').textContent='';this.ask(pending.state,'ठीक है, '+pending.label+' दोबारा बोलें।');}
+      else this.ask('confirm_entry','मैंने सुना '+pending.text+'। सही है? हाँ या नहीं बोलें, या बटन दबाएँ।');
+      return;
+    }
+    if(/^(phone|name|date|item|service|weight|remark|rate)$/.test(state)&&!this.acceptEntryOnce){
+      var labels={phone:'फोन नंबर',name:'नाम',date:'डिलीवरी तारीख',item:'आइटम',service:'सर्विस',weight:'वजन',remark:'रिमार्क',rate:'रेट'};
+      if(!this.validEntry(state,text)){this.entryPending=null;this.el('guidedTranscript').textContent='';this.ask(state,labels[state]+' का सही जवाब दोबारा बोलें। नाम और आइटम हिन्दी में रखें।');return;}
+      this.entryPending={state:state,text:text,label:labels[state]};this.ask('confirm_entry',labels[state]+': '+text+'। सही है?');return;
+    }
+    this.acceptEntryOnce=false;
+    if(state==='rate'){
+      var target=this.itemIndex;if(!rows[target]||rows[target].locked){this.ask('more','पहले आइटम जोड़ें या Unlock करें। और कपड़े हैं?');return;}
+      rows[target].rate=rateReply.rate;this.render(rows);this.nextItemField();return;
+    }
+    if(state==='phone'){
+      var phoneText=text.replace(/^(?:phone|mobile|फोन|मोबाइल)(?:\s*(?:number|नंबर|नम्बर))?\s*/i,'');
+      var phone=voiceReadPhone_(phoneText);
+      if(!phone.complete&&this.phoneBuffer)phone=voiceReadPhone_(this.phoneBuffer+' '+phoneText);
+      if(!phone.complete){this.phoneBuffer=phone.value.length<10?phone.value:'';this.ask('phone',this.phoneBuffer?'नंबर पूरा नहीं हुआ। बाकी अंक बोलें या पूरा दस अंकों का नंबर दोहराएँ।':'सही दस अंकों का फोन नंबर दोबारा बोलें।');return;}
+      this.phoneBuffer='';this.el('tokenPhone').value=phone.value;this.el('tokenCustomerName').value='';
+      this.state='lookup';this.epoch++;var epoch=this.epoch;
+      this.el('guidedQuestion').textContent='Customer का नाम backend से जाँच रहा है…';
+      this.timer=setTimeout(function(){if(self.active&&self.epoch===epoch)self.fail('Customer lookup में समय लग रहा है। Connection जाँचें।');},20000);
+      google.script.run.withSuccessHandler(function(name){
+        if(!self.active||self.epoch!==epoch||self.value('tokenPhone')!==phone.value)return;
+        if(self.timer){clearTimeout(self.timer);self.timer=null;}
+        if(typeof name==='string'&&hindiFormText_(name)){self.entryPending={state:'name',text:name.trim(),label:'नाम'};self.ask('confirm_entry','इस नंबर पर नाम '+name.trim()+' मिला। सही है?');}
+        else self.ask('name','इस नंबर का नाम नहीं मिला। आपका नाम क्या है?');
+      }).withFailureHandler(function(e){if(self.active&&self.epoch===epoch)self.fail('Customer lookup नहीं हुआ: '+(e.message||e));}).getCustomerByPhone(phone.value,getActiveSessionToken());return;
+    }
+    if(state==='name'){
+      var name=text.replace(/^(?:मेरा नाम|नाम|name|my name is)\s*/i,'').replace(/\s+है$/,'').trim();
+      if(!name||/^\d+$/.test(name)){this.ask('name','नाम साफ़ बोलें।');return;}
+      this.el('tokenCustomerName').value=name;this.ask('date','डिलीवरी किस तारीख को चाहिए? जैसे पंद्रह तारीख या पाँच सितंबर दो हजार छब्बीस।');return;
+    }
+    if(state==='date'){
+      var value=voiceDateToIso_(text);
+      if(!value){this.ask('date','तारीख समझ नहीं आई। जैसे पंद्रह तारीख, या पाँच सितंबर 2026 बोलें।');return;}
+      this.el('tokenDeliveryDate').value=value;this.afterDate();return;
+    }
+    if(state==='item'){
+      result=voiceReadItems_(text);var incoming=result.items.filter(function(r){return !voiceIsBlankItem_(r);});
+      if(!incoming.length||incoming.some(function(r){return !r.item||!Number.isInteger(Number(r.qty))||Number(r.qty)<=0;})){this.ask('item','Quantity और कपड़े का नाम बोलें। जैसे दो शर्ट।');return;}
+      // The guide asks the service/weight separately when these were not included.
+      if(result.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){this.ask('item','पूरी item line साफ़ दोहराएँ, जैसे दो शर्ट वॉश आयरन।');return;}
+      rows.splice.apply(rows,[this.itemIndex,this.itemIndex<rows.length?1:0].concat(incoming));this.render(rows);this.nextItemField();return;
+    }
+    if(state==='service'){
+      var service=resolveVoiceService_(text,false);
+      var weightedService=voiceReadItems_('1 Weight '+text);
+      var weightedRow=weightedService.items[0];
+      if(weightedService.items.length===1&&!weightedService.issues.length&&weightedRow.item==='Weight'&&weightedRow.weight>0&&/^(KG|KG WF)$/.test(weightedRow.service))service=weightedRow.service;
+      if(!service){this.ask('service','मैंने सुना '+text+'। Service समझ नहीं आई। वॉश आयरन, प्रेस, ड्राई क्लीन, के जी या फोल्ड बोलें।');return;}
+      if(!rows[this.itemIndex]){this.ask('item','कपड़े की quantity और नाम दोबारा बोलें।');return;}
+      rows[this.itemIndex].service=service;if(!/^(KG|KG WF)$/.test(service))rows[this.itemIndex].weight=0;
+      if(weightedRow&&weightedRow.service===service&&weightedRow.weight>0&&!weightedService.issues.length)rows[this.itemIndex].weight=weightedRow.weight;
+      this.render(rows);this.nextItemField();return;
+    }
+    if(state==='weight'){
+      var weightText=voiceNumberText_(text).replace(/^(?:वजन|वज़न|weight)\s*/i,'');
+      if(/^\d+(?:\.\d+)?$/.test(weightText))weightText+=' kg';
+      result=voiceReadItems_('1 Weight '+weightText);
+      if(result.items.length!==1||!(result.items[0].weight>0)||result.issues.length){this.ask('weight','वजन दोहराएँ, जैसे तीन किलो चार सौ ग्राम या 3.4 किलो।');return;}
+      if(!rows[this.itemIndex]){this.ask('item','कपड़े की quantity और नाम दोबारा बोलें।');return;}
+      rows[this.itemIndex].weight=result.items[0].weight;
+      if(result.items[0].service==='KG WF')rows[this.itemIndex].service='KG WF';
+      this.render(rows);this.nextItemField();return;
+    }
+    if(state==='more'){
+      var more=this.yesNo(text);if(/^(और|aur)$/i.test(text))more=true;
+      if(/^(?:(?:yes|haa|haan|han|ha|हाँ|हां)\s+)?(?:jodna hai|jodna|jodo|aur jodna hai|add|add more|जोड़ना है|जोड़ना|जोड़ो|जोडना है|और जोड़ना है)[.!?।]?$/i.test(text))more=true;
+      if(more===true){this.itemIndex=rows.length;this.ask('item','अगले कपड़े की quantity, नाम और service बोलें।');}
+      else if(more===false)this.ask('remark','कोई रिमार्क या खास निर्देश हैं? नहीं हों तो नहीं बोलें।');
+      else this.ask('more','और कपड़े जोड़ने हैं? हाँ या नहीं बोलें।');return;
+    }
+    if(state==='remark'){this.el('tokenRemark').value=this.yesNo(text)===false?'':text;this.review();return;}
+    if(state==='review'){
+      var yes=this.yesNo(text);
+      if(yes===true){
+        if(this.snapshot()!==this.reviewSnapshot){this.review();return;}
+        this.suppressAutoOnce=true;this.stop(false);this.el('guidedQuestion').textContent='आपकी पुष्टि मिली। Token backend में save किया जा रहा है…';saveTokenBooking();
+      }else if(yes===false){this.stop(false);this.el('guidedQuestion').textContent='Token save नहीं हुआ। Manual form में सुधार करें, फिर Save Token दबाएँ या बातचीत फिर शुरू करें।';}
+      else this.ask('review','टोकन सेव करना है? केवल हाँ या नहीं बोलें।');
+    }
+  }
+};
+window.onAndroidGuidedPromptDone=function(id){guidedVoice_.promptDone(id);};
+window.onAndroidGuidedPartial=function(text){if(guidedVoice_.active&&guidedVoice_.listening)guidedVoice_.el('guidedTranscript').textContent=String(text||'');};
+document.addEventListener('visibilitychange',function(){if(document.hidden&&guidedVoice_.active)guidedVoice_.stop(true);});
+</script>
+</body>
+</html>
 
