@@ -1355,8 +1355,8 @@
         WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','horse iron','hosh iron','horsh iron','hoss iron','vo siran','vosiran','vosh iron','washiran','wash aayaran','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
         WF:['wf','double u f','dablu ef','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','foald','foled','folding','old','bold','hold','cold','gold','told','sold','world','wass fold','vass fold','baas fold','wos fold','vos fold','bosh fold','wash old','wass old','vass bold','baas hold','wos cold','waash fold','वॉश फोल्ड','वाश फोल्ड','वास फोल्ड','फोल्ड','ओल्ड','बोल्ड','होल्ड','कोल्ड','गोल्ड','किलो वॉश फोल्ड'],
         DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
-        IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','i run','ironning','ironing','earn','press','pressing','pres','presh','pris','pares','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','प्रेस','प्रैस','परेस','प्रीस','इस्त्री','खाली प्रेस'],
-        KG:['kg','kgs','kilo','keelo','killo','kilogram','kilo gram','keji','kay gee','key gee','केजी','के जी','किलो','कीलो','किलोग्राम'],
+        IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','presh','pris','pires','peeres','peres','pares','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','परेस','प्रीस','इस्त्री','खाली प्रेस'],
+        KG:['kg','k g','kgs','kilo','keelo','killo','kilogram','kilo gram','keelo gram','keji','kay gee','key gee','केजी','के जी','किलो','कीलो','किलोग्राम'],
         SH:['sh','shoe','shoes','shoe clean','shoe cleaning','sooj','joota','joote','jute','जूता','जूते','शू','शूज','शूज़']
       };
       var input=String(heard||'').replace(/\b(?:service|please|karna|karo|hai|ki|ka|ke)\b|(?:सर्विस|सेवा|करना|करो|है|की|का|के)/gi,' ').replace(/\s+/g,' ').trim();
@@ -1390,7 +1390,7 @@
       var quickCode=quickVoiceServiceCode_(original)||quickVoiceServiceCode_(cleaned);
       if(quickCode)return quickCode;
       var compact=(original+' '+cleaned).replace(/\s+/g,'');
-      var hasKg=/(?:\bkg\b|\bkgs\b|\b(?:kilo|keelo|killo)(?:\s*gram)?s?\b|\bke\s*ji\b|\bkay\s*gee\b|के\s*जी|केजी|किलो|कीलो)/i.test(original+' '+cleaned);
+      var hasKg=/(?:\bk\s*\.?\s*g\b|\bkgs\b|\b(?:kilo|keelo|killo)(?:\s*gram)?s?\b|\bke\s*ji\b|\b(?:kay|key)\s*gee\b|के\s*जी|केजी|किलो|कीलो|किलोग्राम)/i.test(original+' '+cleaned);
       var hasFold=/(?:\bwf\b|\b(?:fold|foald|foled|old|bold|hold|cold|gold|told|sold|world)(?:ing)?\b|फोल्ड|फोल्डिंग|ओल्ड|बोल्ड|होल्ड|कोल्ड|गोल्ड)/i.test(original+' '+cleaned);
       if(/(?:\bsh\b|shoe|shoes|sooj|joota|joote|jute|जूता|जूते|शू|शूज|शूज़)/i.test(original+' '+cleaned))return 'SH';
       if(hasFold)return 'WF'; // WF is the weight-based Wash & Fold service.
@@ -1400,13 +1400,20 @@
       if(/(?:\bwi\b|dabl+oo?\s*(?:aai|ai|eye)|dablu\s*(?:aai|ai)|डब्ल्यू\s*(?:आई|आइ)|डब्लू\s*(?:आई|आइ))/i.test(original+' '+cleaned))return 'WI';
       // In Laundry Bazaar a standalone spoken "wash" means Wash & Iron.
       if(/^(?:wi|wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास)$/i.test(cleaned))return 'WI';
-      if(/(?:\bir\b|\bi\s*r\b|iron|airon|a\s*iron|ai[\s-]*(?:run|ron)|ayaran|ayran|airan|iran|eraan|eren|irun|hi\s*run|i\s*run|earn|ironing|ironning|press|pressing|pres|presh|pris|pares|parais|istri|istree|आयरन|आयरनिंग|आइरन|अयरन|ईरन|प्रेस|प्रैस|परेस|प्रीस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
+      if(/(?:\bi\s*\.?\s*r\b|\b(?:iron|airon|ayaran|ayran|airan|iran|eraan|eren|irun|earn|ironing|ironning)\b|\b(?:a|ai|aai|i|hi|eye)\s*(?:run|ron)\b|\b(?:press+|pres+|presh|pris|pires|peeres|peres|pares|parais|pressing)\b|\b(?:istri|istree)\b|आयरन|आयरनिंग|आइरन|अयरन|ईरन|आई\s*रन|आइ\s*रन|प्रेस|प्रैस|परेस|प्रीस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
       var direct=(cleaned.toUpperCase().match(/\b(?:WI|WF|DC|IR|SH|KG)\b/)||[])[0];
       return direct||fuzzyVoiceServiceCode_(original)||fuzzyVoiceServiceCode_(cleaned)||'';
     }
 
     function serviceOptionCode_(option){
       var label=String(option||'').trim().toUpperCase().replace(/[._/()\[\]:-]+/g,' ').replace(/\s+/g,' ').trim();
+      // Sheet labels sometimes contain spoken-style spaced codes: K G / I R.
+      label=label.replace(/(?:^|\s)K\s+G(?=\s|$)/g,' KG')
+        .replace(/(?:^|\s)I\s+R(?=\s|$)/g,' IR')
+        .replace(/(?:^|\s)W\s+I(?=\s|$)/g,' WI')
+        .replace(/(?:^|\s)W\s+F(?=\s|$)/g,' WF')
+        .replace(/(?:^|\s)D\s+C(?=\s|$)/g,' DC')
+        .replace(/(?:^|\s)S\s+H(?=\s|$)/g,' SH').replace(/\s+/g,' ').trim();
       // WF is weight-based and must win over KG in labels such as "KG WF"
       // or "KG - Wash Fold".
       if(/(?:^|\s)WF(?=\s|$)|WASH\s*(?:&|AND)?\s*FOLD|KG.*FOLD/.test(label))return 'WF';
