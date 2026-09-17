@@ -1303,7 +1303,7 @@
         [/\bi\s*\.?\s*r\b|आई\s*आर/gi,'IR'],
         [/\b(?:(?:only|just|khali|sirf)\s+)?(?:iron(?:ing)?|press(?:ing)?|istri|istree)(?:\s+(?:press|iron(?:ing)?))?(?:\s+(?:karna|karo|kar\s*do))?(?:\s+hai)?\b/gi,'IR'],
         [/(?:(?:खाली|सिर्फ|केवल)\s*)?(?:आयरनिंग|आयरन|प्रेस|प्रैस|प्रेश|परेस|परेश|पिरेस|पीरेस|परिस|प्रिस|इस्त्री|इस्तरी)(?:\s*(?:प्रेस|आयरनिंग|आयरन))?(?:\s*(?:करना|करो|कर\s*दो))?(?:\s*है)?/g,'IR'],
-        [/\b(?:k\s*\.?\s*g\.?|kgs?|(?:kay|key|ke)\s*(?:gee|jee|ji)|keji|kilo(?:\s*gram)?s?)\b|के\s*\.?\s*(?:जी|जि|गी)\.?|केज|किलो(?:\s*ग्राम)?/gi,'kg'],
+        [/\b(?:k\s*\.?\s*g\.?|kgs?|(?:kay|key|ke|ki|kee)\s*(?:gee|jee|ji|g)|keji|kiji|(?:kilo|kelo|keelo|killo)(?:\s*gram(?:me)?)?s?)\b|(?:के|की|कि)\s*\.?\s*(?:जी|जि|गी)\.?|केज|कीजी|किजी|किलो(?:ं|\s*ग्राम)?|कीलो|किल्लो|किलोग्राम/gi,'kg'],
         [/\b(?:s\s*h|shoe[s]?\s*clean(?:ing)?)\b|एस\s*एच|शू(?:ज़|ज)?\s*क्लीनिंग|जूते\s*की\s*सफाई/gi,'SH'],
         [/\b(?:sooj|jute|joote|joota|shoes?)\b|जूते|जूता|जुते|शूज़|शूज|शू/gi,'shoe'],
         [/\bb\s*l\s*k\b|बी\s*एल\s*के/gi,'BLK'],
@@ -1356,7 +1356,7 @@
         WF:['wf','double u f','dablu ef','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','foald','foled','folding','old','bold','hold','cold','gold','told','sold','world','wass fold','vass fold','baas fold','wos fold','vos fold','bosh fold','wash old','wass old','vass bold','baas hold','wos cold','waash fold','वॉश फोल्ड','वाश फोल्ड','वास फोल्ड','फोल्ड','ओल्ड','बोल्ड','होल्ड','कोल्ड','गोल्ड','किलो वॉश फोल्ड'],
         DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
         IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','pressh','presh','prash','pris','priss','prez','pires','pirees','peeres','peres','pares','paress','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','प्रेश','परेस','परेश','पिरेस','पीरेस','परिस','प्रिस','प्रीस','इस्त्री','खाली प्रेस'],
-        KG:['kg','k g','kgs','kilo','keelo','killo','kilogram','kilo gram','keelo gram','keji','kay gee','key gee','केजी','के जी','किलो','कीलो','किलोग्राम'],
+        KG:['kg','k g','kgs','keygee','kaygee','ke g','ki ji','kee jee','keji','kiji','kilo','kilos','kiloes','kelo','keelo','killo','kilogram','kilogramme','kilo gram','keelo gram','kay gee','key gee','केजी','के जी','के जि','कीजी','की जी','कि जी','किजी','किलो','किलों','कीलो','किल्लो','किलो ग्राम','किलोग्राम'],
         SH:['sh','shoe','shoes','shoe clean','shoe cleaning','sooj','joota','joote','jute','जूता','जूते','शू','शूज','शूज़']
       };
       var input=String(heard||'').replace(/\b(?:service|please|karna|karo|hai|ki|ka|ke)\b|(?:सर्विस|सेवा|करना|करो|है|की|का|के)/gi,' ').replace(/\s+/g,' ').trim();
@@ -1390,7 +1390,7 @@
       var quickCode=quickVoiceServiceCode_(original)||quickVoiceServiceCode_(cleaned);
       if(quickCode)return quickCode;
       var compact=(original+' '+cleaned).replace(/\s+/g,'');
-      var hasKg=/(?:\bk\s*\.?\s*g\b|\bkgs\b|\b(?:kilo|keelo|killo)(?:\s*gram)?s?\b|\bke\s*ji\b|\b(?:kay|key)\s*gee\b|के\s*जी|केजी|किलो|कीलो|किलोग्राम)/i.test(original+' '+cleaned);
+      var hasKg=/(?:\bk\s*\.?\s*g\b|\bkgs?\b|\b(?:kilo|kelo|keelo|killo)(?:e?s|\s*gram(?:me)?s?)?\b|\b(?:ke|ki|kee)\s*(?:g|ji|jee)\b|\b(?:kay|key)\s*gee\b|के\s*(?:जी|जि)|की\s*जी|कि\s*जी|केजी|कीजी|किजी|किलो|किलों|कीलो|किल्लो|किलो\s*ग्राम|किलोग्राम)/i.test(original+' '+cleaned);
       var hasFold=/(?:\bwf\b|\b(?:fold|foald|foled|old|bold|hold|cold|gold|told|sold|world)(?:ing)?\b|फोल्ड|फोल्डिंग|ओल्ड|बोल्ड|होल्ड|कोल्ड|गोल्ड)/i.test(original+' '+cleaned);
       if(/(?:\bsh\b|shoe|shoes|sooj|joota|joote|jute|जूता|जूते|शू|शूज|शूज़)/i.test(original+' '+cleaned))return 'SH';
       if(hasFold)return 'WF'; // WF is the weight-based Wash & Fold service.
@@ -3057,15 +3057,19 @@
     var answer=this.value('guidedAnswer');if(!this.active||this.state==='lookup'||!answer)return;
     this.cancelInput();this.promptId='';this.listening=true;this.receive(answer);
   },
+  isStopAnswer:function(text){
+    var s=voiceClean_(String(text).toLowerCase()).replace(/[.!?,।]+/g,' ').replace(/\s+/g,' ').trim();
+    return /^(?:(?:बस|बस्स|बास|bus+|bas+|buzz)(?:\s+(?:बस|बस्स|बास|bus+|bas+|buzz))*|बस करो|बस हो गया|बास करो|bus karo|bas karo|enough|done|finish|finished|no more|नहीं और)(?:\s+(?:जी|please|प्लीज))?$/.test(s);
+  },
   yesNo:function(text){
     var s=voiceClean_(String(text).toLowerCase()).replace(/[.!?,।]+$/g,'').replace(/\s+/g,' ').trim();
-    // Check negative intent first so phrases such as "नहीं जोड़ो" can never
-    // be accepted merely because they also contain an affirmative action word.
-    if(/^(?:नहीं|नही|ना|न|no|nope|nah|nahi|nahin|मत|mat)(?:\s+(?:जी|और|करो|करना|जोड़ो|जोडो|add|save|please|thanks|more|karo|karna|jodo))*$/.test(s))return false;
-    if(/^(?:नहीं जी|नही जी|जी नहीं|जी नही|नहीं नहीं|नहीं करो|नही करो|मत करो|रहने दो|नहीं चाहिए|नही चाहिए|बस|नहीं और|no no|no more|no thanks|do not|don't|dont|cancel|reject|rejected|negative|incorrect|nahi ji|nahin ji|nahi karo|mat karo|rehne do|bas|गलत|गलत है|wrong)$/.test(s))return false;
-    // Broad affirmative vocabulary for item confirmation and "more item".
-    if(/^(?:(?:हाँ|हां|हा|जी|हाँजी|हांजी|haan|haa|han|ha|hanji|haan ji|ha ji|yes|yes ji|yes please|yeah|yep|yup)\s*)+(?:जी|please|करो|कर दो|कर दीजिए|karo|kar do|kardo|do it|जोड़ो|जोडो|jodo|add|add it|next|continue|आगे)?$/.test(s))return true;
-    if(/^(?:ok|okay|okk|okke|okkey|okey|ओके|ओकेय|ठीक|ठीक है|ठीक कर दो|ठीक है जोड़ो|सही|सही है|बिल्कुल|बिल्कुल सही|करो|कर दो|कर दीजिए|कर दें|जोड़ो|जोडो|जोड़ दें|जोड दें|और जोड़ो|और जोडो|आगे|अगला|अगला जोड़ो|जारी रखो|yes do it|go ahead|confirm|confirmed|affirmative|positive|bilkul|bilkul sahi|theek|theek hai|thik|thik hai|sahi|sahi hai|karo|kar do|kardo|jodo|aur jodo|add|add it|add more|next|continue|continue please|proceed|save|save it|save token)$/.test(s))return true;
+    if(!s)return null;
+    if(this.isStopAnswer(s))return false;
+    // Any clear negative intent wins, even when action words follow it.
+    if(/(?:^|\s)(?:नहीं|नही|ना|मत|गलत|रद्द|no|nope|nah|nahi|nahin|not|don't|dont|wrong|cancel|reject|negative)(?:\s|$)/.test(s))return false;
+    // Accept natural affirmative sentences, not only one exact word.
+    if(/(?:^|\s)(?:हाँ|हां|हा|हाँजी|हांजी|हाजी|जी हाँ|जी हां|हूँ|हूं|haan|haa|han|ha|hanji|yes|yeah|yep|yup|sure|correct|affirmative|positive)(?:\s|$)/.test(s))return true;
+    if(/^(?:जी|ओके|ओकेय|ठीक|ठीक है|ठीक है जी|बिल्कुल|बिल्कुल सही|सही|सही है|सही है जी|करो|कर दो|कर दीजिए|कर दें|हो गया|चलो|आगे|अगला|जारी रखो|जोड़ो|जोडो|और जोड़ो|और जोडो|ok+|okay|okey|theek|theek hai|thik|thik hai|bilkul|bilkul sahi|sahi|sahi hai|right|fine|good|done right|go ahead|proceed|continue|next|confirm|confirmed|do it|kar do|kardo|jodo|aur jodo|add|add it|add more|save|save it|save token)(?:\s+(?:जी|please|प्लीज))?$/.test(s))return true;
     return null;
   },
   rows:function(){return getTokenItemsForSave_();},
@@ -3169,7 +3173,7 @@
     if(state==='row_confirm'){
       var rowAnswer=this.yesNo(text),row=rows[this.itemIndex];
       if(!row){this.ask('item','मात्रा और आइटम का नाम बोलें।');return;}
-      if(/^(?:बस|bas|no more|नहीं और)$/i.test(text)){
+      if(this.isStopAnswer(text)){
         row.locked=true;this.render(rows,true);this.itemIndex++;this.review();return;
       }
       var directItems=voiceReadItems_(text),directRows=directItems.items.filter(function(r){return !voiceIsBlankItem_(r);});
@@ -3290,6 +3294,7 @@
       this.render(rows);this.nextItemField();return;
     }
     if(state==='more'){
+      if(this.isStopAnswer(text)){this.review();return;}
       var more=this.yesNo(text);if(/^(और|aur)$/i.test(text))more=true;
       if(/^(?:(?:yes|haa|haan|han|ha|हाँ|हां)\s+)?(?:jodna hai|jodna|jodo|aur jodna hai|add|add more|जोड़ना है|जोड़ना|जोड़ो|जोडना है|और जोड़ना है)[.!?।]?$/i.test(text))more=true;
       if(more===true){this.itemIndex=rows.length;this.ask('item','मात्रा और आइटम बोलें।');return;}
