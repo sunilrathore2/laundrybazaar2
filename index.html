@@ -1640,7 +1640,7 @@
       for(var i=0;i<result.length;i++){
         var transcript=String(result[i].transcript||'').trim();
         if(!transcript)continue;
-        var valid=state==='service'?!!resolveVoiceService_(transcript,false):state==='rate'?guidedRateValue_(transcript)!==null:true;
+        var valid=(state==='service'||state==='service_fast')?(!!resolveVoiceService_(transcript,false)||guidedRateValue_(transcript)!==null):state==='rate'?guidedRateValue_(transcript)!==null:state==='item'?(function(){var parsed=voiceReadItems_(transcript);return parsed.items.length===1&&parsed.items[0].item&&Number.isInteger(Number(parsed.items[0].qty))&&Number(parsed.items[0].qty)>0;})():true;
         var confidence=Number(result[i].confidence||0);
         if(valid&&(best===''||confidence>bestConfidence)){best=transcript;bestConfidence=confidence;}
       }
@@ -1651,6 +1651,10 @@
     function voiceReadItems_(input){
       // Normalize the service before splitting "and": wash AND iron stays one service.
       var text=voiceNumberText_(normalizeVoiceAliases_(input)).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ');
+      // Accept natural quantity expressions in either order:
+      // "2 piece shirt", "shirt 2", "शर्ट के 2", "दो नग पैंट".
+      text=text.replace(/^(\d+)\s*(?:pieces?|pcs?|piece|नग|पीस|जोड़ी|जोड़ी)\s+/i,'$1 ');
+      text=text.replace(/^(shirts?|t\s*shirts?|tshirts?|pants?|trousers?|jeans?|blankets?|shoes?|shoe|शर्ट|टी\s*शर्ट|पैंट|पतलून|जींस|कंबल|जूते?|जूता)\s*(?:के\s*)?(\d+)$/i,'$2 $1');
       text=text.replace(/(\d)\s+(?:hundred|सौ)(?=\s|$)/gi,function(_,n){return String(Number(n)*100);});
       // Convert mixed units before row splitting, so 'kg 400 gram' is not another row.
       text=text.replace(/(\d+(?:\.\d+)?)\s*kg\s*(\d+(?:\.\d+)?)\s*(?:grams?|gm|g|ग्राम)(?=\s|$|[,;।])/gi,function(_,kg,g){return String(Math.round((Number(kg)+Number(g)/1000)*1000)/1000)+' kg';});
@@ -3032,9 +3036,12 @@
         for(var itemResultIndex=event.resultIndex||0;itemResultIndex<event.results.length;itemResultIndex++){
           if(event.results[itemResultIndex].isFinal)itemChunk+=event.results[itemResultIndex][0].transcript+' ';
         }
-        self.queueItemSpeech(itemChunk||text,900);return;
+        var bestItem=bestGuidedSpeechAlternative_('item',last);
+        var bestItemParsed=voiceReadItems_(bestItem);
+        var bestItemValid=bestItemParsed.items.length===1&&bestItemParsed.items[0].item&&Number.isInteger(Number(bestItemParsed.items[0].qty))&&Number(bestItemParsed.items[0].qty)>0;
+        self.queueItemSpeech(bestItemValid?bestItem:(itemChunk||text),900);return;
       }
-      if(last.isFinal&&/^(service|rate)$/.test(self.state))text=bestGuidedSpeechAlternative_(self.state,last);
+      if(last.isFinal&&/^(service|service_fast|rate)$/.test(self.state))text=bestGuidedSpeechAlternative_(self.state,last);
       if(last.isFinal&&/^(confirm_entry|item_name_confirm|service_confirm|row_confirm|more|review)$/.test(self.state)){
         for(var alternativeIndex=0;alternativeIndex<last.length;alternativeIndex++){
           var quickAnswer=String(last[alternativeIndex].transcript||'').trim();
