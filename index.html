@@ -30,7 +30,7 @@
         if (data.ok) {
           if (typeof job.success === 'function') job.success(data.result);
         } else if (typeof job.failure === 'function') {
-          job.failure({message: data.error || 'Backend request failed.'});
+          job.failure(new Error(data.error || 'Backend request failed.'));
         }
       });
 
@@ -64,7 +64,7 @@
             var current = pending[id];
             cleanup(id);
             if (current && typeof current.failure === 'function') {
-              current.failure({message: 'Backend connection timeout calling ' + method + '.'});
+              current.failure(new Error('Backend connection timeout calling ' + method + '. Check that the latest Apps Script Code is deployed as a new web-app version.'));
             }
           }, 45000)
         };
@@ -707,7 +707,7 @@
     <div class="simple-token-actions"><button class="btn" id="newTokenBtn" type="button" onclick="refreshToken_()">नया टोकन</button><button class="btn" id="refreshTokenBtn" type="button" onclick="refreshToken_()">रिफ्रेश</button></div>
     <div class="form-row"><label>टोकन तारीख:</label><input type="date" id="tokenDate"></div>
     <div id="customerVoicePanel">
-      <button class="btn" id="voiceTokenBtn" type="button" onclick="guidedVoice_.start(true)">🎤 ग्राहक विवरण</button>
+      <button class="btn" id="voiceTokenBtn" type="button" onclick="startGuidedVoiceWithPermission_('details')">🎤 ग्राहक विवरण</button>
       <button class="btn" id="voiceTokenStopBtn" type="button" onclick="stopVoiceToken()" disabled>Stop</button>
     </div>
     <div class="form-row"><label>फोन:</label><input type="text" id="tokenPhone" maxlength="10" oninput="lookupTokenCustomer()"></div>
@@ -715,7 +715,7 @@
     <div class="form-row"><label>डिलीवरी तारीख:</label><input type="date" id="tokenDeliveryDate"></div>
     <div id="compactVoiceToolbar" class="simple-token-voice">
       <div id="itemsVoicePanel">
-        <button class="btn" id="voiceItemsBtn" type="button" onclick="guidedVoice_.startItems()">🎤 आइटम</button>
+        <button class="btn" id="voiceItemsBtn" type="button" onclick="startGuidedVoiceWithPermission_('items')">🎤 आइटम</button>
         <button class="btn" id="voiceItemsStopBtn" type="button" onclick="stopVoiceToken()" disabled style="padding:4px 8px;margin:2px 0">Stop</button>
       </div>
     </div>
@@ -875,7 +875,9 @@
       google.script.run.withSuccessHandler(function(res){
         if(!res || !res.success){ document.getElementById('loginError').textContent=(res&&res.message)||'Login failed'; return; }
         activateSession(res);
-      }).withFailureHandler(function(e){document.getElementById('loginError').textContent='Login error: '+e;}).login(u,p);
+      }).withFailureHandler(function(e){
+        document.getElementById('loginError').textContent='Login error: '+(e&&e.message?e.message:String(e||'Unknown backend error'));
+      }).login(u,p);
     }
 
     function showLoginScreen(){
@@ -1127,6 +1129,32 @@
       return window.SpeechRecognition || window.webkitSpeechRecognition || null; 
     }
 
+    function microphoneHelpMessage_(){
+      return 'Microphone blocked है। Chrome में address bar के lock/site icon पर tap करें → Permissions → Microphone → Allow, फिर page reload करके voice button दबाएँ।';
+    }
+
+    function startGuidedVoiceWithPermission_(mode){
+      var start=function(){
+        if(mode==='items') guidedVoice_.startItems();
+        else guidedVoice_.start(true);
+      };
+      // The Android wrapper owns its native permission flow.
+      if(window.AndroidVoice&&typeof window.AndroidVoice.startRecognition==='function'){start();return;}
+      if(!window.isSecureContext){
+        document.getElementById('guidedQuestion').textContent='Microphone के लिए HTTPS जरूरी है। GitHub Pages का https:// URL खोलें।';
+        return;
+      }
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){start();return;}
+      document.getElementById('guidedQuestion').textContent='Microphone permission जाँच रहा है…';
+      navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+        stream.getTracks().forEach(function(track){track.stop();});
+        start();
+      }).catch(function(error){
+        var blocked=error&&(/NotAllowedError|PermissionDeniedError|SecurityError/.test(error.name||''));
+        document.getElementById('guidedQuestion').textContent=blocked?microphoneHelpMessage_():'Microphone शुरू नहीं हुआ: '+((error&&error.message)||error);
+      });
+    }
+
     function stopVoiceToken(){
       if(typeof guidedVoice_!=='undefined'&&guidedVoice_.active)guidedVoice_.stop(false);
       tokenVoiceEpoch_++;tokenVoiceContinuous_=false;
@@ -1182,7 +1210,8 @@
         };
         recognition.onerror=function(event){
           if(epoch!==tokenVoiceEpoch_)return;
-          if(event.error!=='no-speech'&&event.error!=='aborted')window.onAndroidVoiceError('Microphone: '+event.error+'. Please retry.');
+          if(event.error==='not-allowed'||event.error==='service-not-allowed')window.onAndroidVoiceError(microphoneHelpMessage_());
+          else if(event.error!=='no-speech'&&event.error!=='aborted')window.onAndroidVoiceError('Microphone: '+event.error+'. Please retry.');
         };
         recognition.onend=function(){
           if(epoch!==tokenVoiceEpoch_||!tokenVoiceActive_)return;
@@ -2711,7 +2740,10 @@
       self.el('guidedTranscript').textContent=text.trim();
       if(event.results[event.results.length-1].isFinal)self.receive(text.trim());
     };
-    recognition.onerror=function(event){if(self.active&&self.epoch===epoch&&event.error!=='no-speech'&&event.error!=='aborted')self.fail('Microphone: '+event.error);};
+    recognition.onerror=function(event){
+      if(!self.active||self.epoch!==epoch||event.error==='no-speech'||event.error==='aborted')return;
+      self.fail(event.error==='not-allowed'||event.error==='service-not-allowed'?microphoneHelpMessage_():'Microphone: '+event.error);
+    };
     recognition.onend=function(){
       if(self.active&&self.epoch===epoch&&self.listening){self.recognition=null;self.timer=setTimeout(function(){if(self.active&&self.epoch===epoch)self.listen();},500);}
     };
