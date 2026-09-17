@@ -978,6 +978,33 @@
       }).getNewTokenNumber(getActiveSessionToken());
     }
 
+    function bookingRequestStorageKey_(type){
+      return 'lbPending_'+String(type||'booking')+'_'+String(currentUser&&currentUser.username||'');
+    }
+
+    function bookingFingerprint_(obj){
+      var copy=JSON.parse(JSON.stringify(obj||{}));delete copy.requestId;
+      var text=JSON.stringify(copy),hash=2166136261;
+      for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+      return (hash>>>0).toString(36)+'_'+text.length;
+    }
+
+    function bookingRequestId_(type,obj){
+      var key=bookingRequestStorageKey_(type),fingerprint=bookingFingerprint_(obj),now=Date.now(),pending=null;
+      try{pending=JSON.parse(localStorage.getItem(key)||'null');}catch(e){localStorage.removeItem(key);}
+      if(pending&&pending.id&&pending.fingerprint===fingerprint)return pending.id;
+      if(pending&&pending.id&&pending.fingerprint!==fingerprint&&now-Number(pending.createdAt||0)<300000){
+        throw new Error('पिछली Token Save request की पुष्टि बाकी है। Token list जाँचें; 5 मिनट बाद नई request की जा सकती है।');
+      }
+      var id=(window.crypto&&typeof window.crypto.randomUUID==='function')?window.crypto.randomUUID():('lb_'+now+'_'+Math.random().toString(36).slice(2,12));
+      localStorage.setItem(key,JSON.stringify({id:id,fingerprint:fingerprint,createdAt:now}));
+      return id;
+    }
+
+    function clearBookingRequest_(type){
+      localStorage.removeItem(bookingRequestStorageKey_(type));
+    }
+
     function saveTokenBooking(){
       if(document.getElementById('saveTokenBtn').disabled)return;
       stopVoiceToken();
@@ -994,7 +1021,7 @@
         remark: document.getElementById('tokenRemark').value.trim()
       };
       if(!obj.customerName) return alert('Customer Name required.');
-      if(!hindiFormText_(obj.customerName)||items.some(function(it){return !hindiFormText_(it.item);})||(obj.remark&&!hindiFormText_(obj.remark)))return alert('नाम, आइटम और रिमार्क हिन्दी में भरें। Service codes नहीं बदलें।');
+      if(!validFormText_(obj.customerName)||items.some(function(it){return !validFormText_(it.item);})||(obj.remark&&!validFormText_(obj.remark)))return alert('नाम, आइटम और रिमार्क में सही Hindi या English text भरें।');
       if(!/^\d{10}$/.test(obj.phone)) return alert('Phone must be exactly 10 digits.');
       if(!obj.deliveryDate) return alert('Delivery Date required.');
       if(!items.length || items.some(function(it){ return !it.service || !it.item || !Number.isInteger(Number(it.qty)) || Number(it.qty)<=0 || (/^(KG|WF)$/.test(it.service) && !(Number(it.weight)>0)); })) {
@@ -1050,6 +1077,7 @@
     }
 
     function hindiFormText_(value){return /[\u0900-\u097f]/.test(String(value||''))&&!/[a-z]/i.test(String(value||''));}
+    function validFormText_(value){return /[a-z\u0900-\u097f]/i.test(String(value||''));}
     function hindiItem_(value){
       var words={shirt:'शर्ट',tshirt:'टीशर्ट',pant:'पैंट',trouser:'पतलून',jeans:'जींस',coat:'कोट',full:'फुल',half:'हाफ',suit:'सूट',pcs:'पीस',jacket:'जैकेट',leather:'चमड़ा',normal:'सामान्य',sweater:'स्वेटर',cardigan:'कार्डिगन',kurta:'कुर्ता',plain:'सादा',fancy:'फैंसी',silk:'रेशम',salwar:'सलवार',saree:'साड़ी',cotton:'सूती',work:'वर्क',short:'छोटी',dress:'ड्रेस',knee:'घुटने',length:'लंबाई',maxi:'मैक्सी',long:'लंबी',delicate:'नाजुक',lehenga:'लहंगा',lining:'अस्तर',single:'सिंगल',double:'डबल',shawl:'शॉल',blanket:'कंबल',heavy:'भारी',towel:'तौलिया',large:'बड़ा',hand:'हाथ',face:'चेहरा',bedsheet:'चादर',quilt:'रजाई',carpet:'कालीन',sqft:'वर्ग फुट',curtains:'पर्दे',sofa:'सोफा',cover:'कवर',medium:'मध्यम',small:'छोटा',sports:'स्पोर्ट्स',canvas:'कैनवास',suede:'सुएड',shoe:'जूता',shoes:'जूते',blazer:'ब्लेजर'};
       return String(value||'').replace(/[a-z]+/gi,function(w){return words[w.toLowerCase()]||w;});
@@ -1317,7 +1345,7 @@
 
     function fuzzyVoiceServiceCode_(heard){
       var lexicon={
-        WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
+        WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','horse iron','hosh iron','horsh iron','hoss iron','vo siran','vosiran','vosh iron','washiran','wash aayaran','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
         WF:['wf','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','waash fold','वॉश फोल्ड','वाश फोल्ड','किलो वॉश फोल्ड'],
         DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
         IR:['ir','iron','ironing','press','pressing','pres','istri','istree','iron only','press only','आयरन','आयरनिंग','प्रेस','प्रैस','इस्त्री','खाली प्रेस'],
@@ -1349,7 +1377,7 @@
       if(hasFold)return 'WF'; // WF is the weight-based Wash & Fold service.
       if(isKg||hasKg||/^(?:grams?|gm|ग्राम)$/.test(cleaned))return 'KG';
       if(/(?:\bd\s*c\b|dry\s*clean|dryclean|ड्राई\s*क्लीन|ड्रायक्लीन|डी\s*सी)/i.test(original+' '+cleaned)||/^(?:dc)+$/i.test(compact))return 'DC';
-      if(/(?:wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास).*(?:iron|press|pres|istri|इस्त्री|प्रेस|आयरन)|(?:dho\s*ke|dhoke|dho\s*kar|धो\s*के|धोके|धुलाई).*(?:press|pres|iron|प्रेस|आयरन|इस्त्री)/i.test(original+' '+cleaned))return 'WI';
+      if(/(?:wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|horse|horsh|hosh|hoss|वॉश|वाश|वास).*(?:iron|iran|aayaran|siran|press|pres|istri|इस्त्री|प्रेस|आयरन)|(?:vo\s*siran|vosiran|washiran)|(?:dho\s*ke|dhoke|dho\s*kar|धो\s*के|धोके|धुलाई).*(?:press|pres|iron|प्रेस|आयरन|इस्त्री)/i.test(original+' '+cleaned))return 'WI';
       if(/(?:\bwi\b|dabl+oo?\s*(?:aai|ai|eye)|dablu\s*(?:aai|ai)|डब्ल्यू\s*(?:आई|आइ)|डब्लू\s*(?:आई|आइ))/i.test(original+' '+cleaned))return 'WI';
       // In Laundry Bazaar a standalone spoken "wash" means Wash & Iron.
       if(/^(?:wi|wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास)$/i.test(cleaned))return 'WI';
@@ -1547,7 +1575,12 @@
         .replace(/\s*(?:rupees?|rs\.?|inr|rupaye|rupaiye|rupya|रुपये|रुपए|रुपया|रूपये)\s*/ig,' ')
         .replace(/\s*(?:का|की|के|ka|ki|ke|है|hai)\s*$/i,'').trim();
       if(Object.prototype.hasOwnProperty.call(exact,raw))return exact[raw];
-      var converted=voiceNumberText_(raw).replace(/^(?:rate|रेट|दर|price|कीमत)\s*/i,'').replace(/[,\s]/g,'');
+      var numberText=voiceNumberText_(raw);
+      var numbers=numberText.match(/\d+(?:\.\d{1,2})?/g)||[];
+      // During the dedicated rate question, one number anywhere in a sentence
+      // is unambiguous: "rate शायद 50 रुपये है" still means 50.
+      if(numbers.length===1){var sentenceValue=Number(numbers[0]);if(Number.isFinite(sentenceValue)&&sentenceValue>=0&&sentenceValue<=100000)return sentenceValue;}
+      var converted=numberText.replace(/^(?:rate|रेट|दर|price|कीमत)\s*/i,'').replace(/[,\s]/g,'');
       if(!/^\d+(?:\.\d{1,2})?$/.test(converted))return fuzzySpokenRate_(raw);
       var value=Number(converted);
       return Number.isFinite(value)&&value>=0&&value<=100000?value:null;
@@ -1723,7 +1756,7 @@
     }
     function fillVoiceTokenForm_(data, base){
       base=base||{items:getTokenItems(),name:document.getElementById('tokenCustomerName').value,phone:document.getElementById('tokenPhone').value,deliveryDate:document.getElementById('tokenDeliveryDate').value,remark:document.getElementById('tokenRemark').value};
-      document.getElementById('tokenCustomerName').value=data.fields.name&&hindiFormText_(data.name)?data.name:base.name;
+      document.getElementById('tokenCustomerName').value=data.fields.name&&validFormText_(data.name)?data.name:base.name;
       document.getElementById('tokenPhone').value=data.fields.phone?data.phone:base.phone;
       document.getElementById('tokenDeliveryDate').value=data.deliveryDate||base.deliveryDate;
       document.getElementById('tokenRemark').value=data.fields.remark?data.remark:base.remark;
@@ -1781,7 +1814,7 @@
         }
         renderTokenItemsTable(mergeVoiceItems_(base.items,data.items,data.leadingSeparator));calcTokenTotals();
       }else if(tokenVoiceScope_==='details'){
-        if(data.fields.name&&hindiFormText_(data.name))document.getElementById('tokenCustomerName').value=data.name;
+        if(data.fields.name&&validFormText_(data.name))document.getElementById('tokenCustomerName').value=data.name;
         if(data.fields.phone)document.getElementById('tokenPhone').value=data.phone;
         if(data.deliveryDate)document.getElementById('tokenDeliveryDate').value=data.deliveryDate;
       }else fillVoiceTokenForm_(data,base);
@@ -2925,16 +2958,16 @@
   rows:function(){return getTokenItemsForSave_();},
   validEntry:function(state,text){
     if(state==='phone'){var p=voiceReadPhone_(text.replace(/^(?:phone|mobile|फोन|मोबाइल)(?:\s*(?:number|नंबर))?\s*/i,''));return p.value.length>0&&!p.rest.trim()&&!p.error;}
-    if(state==='name'){return hindiFormText_(text)&&this.yesNo(text)===null&&text.trim().split(/\s+/).length<=6;}
+    if(state==='name'){return validFormText_(text)&&this.yesNo(text)===null&&text.trim().split(/\s+/).length<=6;}
     if(state==='date'){
       var dateWords=voiceNumberText_(text).toLowerCase().replace(/(?:delivery|date|today|tomorrow|day after tomorrow|parso|parson|narso|डिलीवरी|डिलिवरी|तारीख़?|तारिख|डेट|आज|परसों|परसो|नरसों|नरसो|कल|जनवरी|फरवरी|फ़रवरी|मार्च|अप्रैल|मई|जून|जुलाई|अगस्त|सितंबर|सितम्बर|अक्टूबर|नवंबर|नवम्बर|दिसंबर|दिसम्बर|january|february|march|april|may|june|july|august|september|october|november|december|देना|करना|है|को|की|में|तक|दिन)/gi,'').replace(/[\d\s.,/\-]+/g,'');
       return !!voiceDateToIso_(text)&&!dateWords;
     }
-    if(state==='remark')return this.yesNo(text)===false||hindiFormText_(text);
+    if(state==='remark')return this.yesNo(text)===false||validFormText_(text);
     if(state==='rate'){var price=readVoiceRate_(text);return price.rate!==null&&!price.rest;}
     if(state==='service')return !!resolveVoiceService_(text,false)||this.validEntry('weight',text);
     if(state==='weight'){var t=voiceNumberText_(text).replace(/^(?:वजन|वज़न|weight)\s*/i,'');if(/^\d+(?:\.\d+)?$/.test(t))t+=' kg';var w=voiceReadItems_('1 Weight '+t);return w.items.length===1&&w.items[0].weight>0&&!w.issues.length;}
-    if(state==='item'){var r=voiceReadItems_(text);return r.items.length>0&&r.items.every(function(it){return Number.isInteger(it.qty)&&it.qty>0&&hindiFormText_(hindiItem_(it.item));})&&!r.issues.some(function(x){return !/^(Select the service|Weight is required)/.test(x);});}
+    if(state==='item'){var r=voiceReadItems_(text);return r.items.length>0&&r.items.every(function(it){return Number.isInteger(it.qty)&&it.qty>0&&validFormText_(it.item);})&&!r.issues.some(function(x){return !/^(Select the service|Weight is required)/.test(x);});}
     return true;
   },
   correctItem:function(index){
@@ -3011,7 +3044,7 @@
     }
     if(/^(phone|name|date)$/.test(state)&&!this.acceptEntryOnce){
       var labels={phone:'फोन नंबर',name:'नाम',date:'डिलीवरी तारीख'};
-      if(!this.validEntry(state,text)){this.entryPending=null;this.el('guidedTranscript').textContent='';this.ask(state,labels[state]+' का सही जवाब दोबारा बोलें। नाम और आइटम हिन्दी में रखें।');return;}
+      if(!this.validEntry(state,text)){this.entryPending=null;this.el('guidedTranscript').textContent='';this.ask(state,labels[state]+' का सही जवाब दोबारा बोलें। Hindi या English दोनों मान्य हैं।');return;}
       this.entryPending={state:state,text:text,label:labels[state]};this.ask('confirm_entry',labels[state]+': '+text+'। सही?');return;
     }
     this.acceptEntryOnce=false;
