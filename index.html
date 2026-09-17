@@ -1274,19 +1274,33 @@
     }
 
 
+    function detectVoiceServiceCode_(spoken,isKg){
+      var original=String(spoken||'').toLowerCase().replace(/[.,!?।:_\-]+/g,' ').replace(/\s+/g,' ').trim();
+      var cleaned=normalizeVoiceAliases_(original).toLowerCase().replace(/\b(?:service|please|karna|karni|karo|kar|do|hai|hain|chahiye|chahie|ki|ka|ke|me|mein)\b|(?:सर्विस|सेवा|प्लीज|करना|करनी|करो|कर|दो|है|हैं|चाहिए|की|का|के|में)/g,' ').replace(/\s+/g,' ').trim();
+      var compact=(original+' '+cleaned).replace(/\s+/g,'');
+      var hasKg=/(?:\bkg\b|\bkgs\b|\bkilo(?:gram)?s?\b|\bke\s*ji\b|\bkay\s*gee\b|के\s*जी|केजी|किलो)/i.test(original+' '+cleaned);
+      var hasFold=/(?:\bwf\b|fold|folding|फोल्ड|फोल्डिंग)/i.test(original+' '+cleaned);
+      if(/(?:\bsh\b|shoe|shoes|sooj|joota|joote|jute|जूता|जूते|शू|शूज|शूज़)/i.test(original+' '+cleaned))return 'SH';
+      if(hasFold)return 'WF'; // WF is the weight-based Wash & Fold service.
+      if(isKg||hasKg||/^(?:grams?|gm|ग्राम)$/.test(cleaned))return 'KG';
+      if(/(?:\bd\s*c\b|dry\s*clean|dryclean|ड्राई\s*क्लीन|ड्रायक्लीन|डी\s*सी)/i.test(original+' '+cleaned)||/^(?:dc)+$/i.test(compact))return 'DC';
+      if(/(?:wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास).*(?:iron|press|pres|istri|इस्त्री|प्रेस|आयरन)|(?:dho\s*ke|dhoke|dho\s*kar|धो\s*के|धोके|धुलाई).*(?:press|pres|iron|प्रेस|आयरन|इस्त्री)/i.test(original+' '+cleaned))return 'WI';
+      if(/(?:\bwi\b|dabl+oo?\s*(?:aai|ai|eye)|dablu\s*(?:aai|ai)|डब्ल्यू\s*(?:आई|आइ)|डब्लू\s*(?:आई|आइ))/i.test(original+' '+cleaned))return 'WI';
+      // In Laundry Bazaar a standalone spoken "wash" means Wash & Iron.
+      if(/^(?:wi|wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास)$/i.test(cleaned))return 'WI';
+      if(/(?:\bir\b|iron|ironing|press|pressing|pres|istri|istree|आयरन|आयरनिंग|प्रेस|प्रैस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
+      var direct=(cleaned.toUpperCase().match(/\b(?:WI|WF|DC|IR|SH|KG)\b/)||[])[0];
+      return direct||'';
+    }
+
     function resolveVoiceService_(spoken, isKg){
-      var cleaned = normalizeVoiceAliases_(spoken).toLowerCase().replace(/\b(ki|ka|ke|me|mein|service|hai|hain)\b|की|का|के|में|सर्विस|हैं|है/g,' ').replace(/\s+/g,' ').trim();
-      cleaned=cleaned.replace(/[.,।!?]/g,' ').split(/\s+/).filter(function(word){return !/^(?:karna|karni|karo|chahiye|chahie|please|kar|do|कीजिए|करना|करनी|करो|चाहिए|कर|दो|करिये|करिए)$/.test(word);}).join(' ').trim();
-      var repeated=cleaned.toUpperCase().match(/WF|WI|DC|IR|SH|KG/g);
-      if(repeated&&repeated.join(' ')===cleaned.toUpperCase()&&repeated.every(function(c){return c===repeated[0];}))cleaned=repeated[0].toLowerCase();
-      if(/^(grams?|ग्राम)$/.test(cleaned))cleaned='kg';
-      var code = isKg ? 'KG' : /^(wi|wash iron|wash & iron)$/.test(cleaned) ? 'WI' : /^(wf|wash fold|kg wf)$/.test(cleaned) ? 'WF' : /^(dc|dry clean|dry cleaning)$/.test(cleaned) ? 'DC' : cleaned.toUpperCase();
+      var code=detectVoiceServiceCode_(spoken,isKg);
       if(code==='BLK')return '';
       var exact=serviceOptions.find(function(opt){return String(opt).trim().toUpperCase()===code;});
       if(exact)return exact;
       return serviceOptions.find(function(opt){
         var o = String(opt).trim().toUpperCase();
-        return o === code || (code === 'WI' && /WASH.*IRON/.test(o)) || (code === 'WF' && /WASH.*FOLD/.test(o)) || (code === 'DC' && /DRY.*CLEAN/.test(o)) || (code === 'IR' && /^(IRON(?:ING)?|PRESS(?:ING)?)$/.test(o));
+        return o === code || (code === 'WI' && /WASH.*IRON/.test(o)) || (code === 'WF' && /(?:WASH.*FOLD|KG\s*WF)/.test(o)) || (code === 'DC' && /DRY.*CLEAN/.test(o)) || (code === 'IR' && /^(IRON(?:ING)?|PRESS(?:ING)?)$/.test(o)) || (code === 'SH' && /SHOE/.test(o));
       }) || '';
     }
 
@@ -1427,16 +1441,20 @@
     function guidedRateValue_(input){
       var raw=voiceClean_(normalizeVoiceAliases_(input)).toLowerCase();
       var exact={
-        'बत्तीस':32,'पैंतीस':35,'चालीस':40,'पैंतालीस':45,'पचास':50,'पचपन':55,
-        'साठ':60,'पैंसठ':65,'सत्तर':70,'पचहत्तर':75,'अस्सी':80,'पचासी':85,
-        'नब्बे':90,'पंचानवे':95,'सौ':100,'एक सौ':100,'डेढ़ सौ':150,'डेढ सौ':150,
-        'दो सौ':200,'ढाई सौ':250,'तीन सौ':300,'चार सौ':400,'पांच सौ':500,'पाँच सौ':500
+        'बीस':20,'पच्चीस':25,'तीस':30,'बत्तीस':32,'पैंतीस':35,'चालीस':40,'पैंतालीस':45,
+        'पचास':50,'पचपन':55,'साठ':60,'पैंसठ':65,'सत्तर':70,'पचहत्तर':75,'अस्सी':80,
+        'पचासी':85,'नब्बे':90,'पंचानवे':95,'सौ':100,'एक सौ':100,'एक सौ बीस':120,
+        'सवा सौ':125,'एक सौ तीस':130,'एक सौ चालीस':140,'डेढ़ सौ':150,'डेढ सौ':150,
+        'एक सौ साठ':160,'एक सौ सत्तर':170,'एक सौ अस्सी':180,'दो सौ':200,'सवा दो सौ':225,
+        'ढाई सौ':250,'तीन सौ':300,'साढ़े तीन सौ':350,'साढे तीन सौ':350,'चार सौ':400,
+        'पांच सौ':500,'पाँच सौ':500,'six hundred':600,'छह सौ':600
       };
       raw=raw.replace(/^\s*(?:rate|रेट|दर|price|कीमत)\s*[:\-]?\s*/i,'')
-        .replace(/\s*(?:rupees?|rs\.?|inr|rupaye|rupaiye|rupya|रुपये|रुपए|रुपया|रूपये)\s*$/i,'')
+        .replace(/[₹]/g,' ')
+        .replace(/\s*(?:rupees?|rs\.?|inr|rupaye|rupaiye|rupya|रुपये|रुपए|रुपया|रूपये)\s*/ig,' ')
         .replace(/\s*(?:का|की|के|ka|ki|ke|है|hai)\s*$/i,'').trim();
       if(Object.prototype.hasOwnProperty.call(exact,raw))return exact[raw];
-      var converted=voiceNumberText_(raw).replace(/[,\s]/g,'');
+      var converted=voiceNumberText_(raw).replace(/^(?:rate|रेट|दर|price|कीमत)\s*/i,'').replace(/[,\s]/g,'');
       if(!/^\d+(?:\.\d{1,2})?$/.test(converted))return null;
       var value=Number(converted);
       return Number.isFinite(value)&&value>=0&&value<=100000?value:null;
@@ -2821,9 +2839,9 @@
       if(row.locked)continue;
       if(!row.item||!Number.isInteger(Number(row.qty))||Number(row.qty)<=0){this.ask('item','इस कपड़े की सही quantity और नाम बोलें।');return;}
       if(!row.service){this.ask('service',row.qty+' '+row.item+' की सर्विस बोलें।');return;}
-      if(/^(KG|KG WF)$/.test(row.service)&&!(Number(row.weight)>0)){this.ask('weight',row.qty+' '+row.item+' का कुल वजन बोलें।');return;}
+      if(/^(KG|WF|KG WF)$/.test(String(row.service).toUpperCase())&&!(Number(row.weight)>0)){this.ask('weight',row.qty+' '+row.item+' का कुल वजन बोलें।');return;}
       if(row.rate===''||row.rate==null||!Number.isFinite(Number(row.rate))||Number(row.rate)<0){this.ask('rate',row.qty+' '+row.item+' का रेट बोलें।');return;}
-      var summary=row.qty+' '+row.item+', सर्विस '+row.service+(/^(KG|KG WF)$/.test(row.service)?', वजन '+row.weight+' किलो':'')+', रेट '+row.rate+' रुपये';
+      var summary=row.qty+' '+row.item+', सर्विस '+row.service+(/^(KG|WF|KG WF)$/.test(String(row.service).toUpperCase())?', वजन '+row.weight+' किलो':'')+', रेट '+row.rate+' रुपये';
       this.ask('row_confirm',summary+'। सही?');return;
     }
     this.ask('more','और आइटम जोड़ना है?');
@@ -2835,9 +2853,9 @@
     if(!this.value('tokenCustomerName')){this.ask('name','आपका नाम क्या है?');return;}
     if(!this.value('tokenDeliveryDate')){this.ask('date','डिलीवरी किस तारीख को चाहिए?');return;}
     if(!rows.length){this.itemIndex=0;this.ask('item','पहले quantity और कपड़े का नाम बोलें।');return;}
-    var bad=rows.findIndex(function(r){return !r.locked||!r.item||!r.service||!Number.isInteger(Number(r.qty))||Number(r.qty)<=0||r.rate===''||r.rate==null||!Number.isFinite(Number(r.rate))||Number(r.rate)<0||(/^(KG|KG WF)$/.test(r.service)&&!(Number(r.weight)>0));});
+    var bad=rows.findIndex(function(r){return !r.locked||!r.item||!r.service||!Number.isInteger(Number(r.qty))||Number(r.qty)<=0||r.rate===''||r.rate==null||!Number.isFinite(Number(r.rate))||Number(r.rate)<0||(/^(KG|WF|KG WF)$/.test(String(r.service).toUpperCase())&&!(Number(r.weight)>0));});
     if(bad>=0){this.itemIndex=bad;this.nextItemField();return;}
-    var readable=rows.map(function(r){return r.qty+' '+r.item+', '+r.service+(/^(KG|KG WF)$/.test(r.service)?', वजन '+r.weight+' किलो':'')+(r.rate!==''&&r.rate!=null?', रेट '+r.rate+' रुपये':'');}).join('। ');
+    var readable=rows.map(function(r){return r.qty+' '+r.item+', '+r.service+(/^(KG|WF|KG WF)$/.test(String(r.service).toUpperCase())?', वजन '+r.weight+' किलो':'')+(r.rate!==''&&r.rate!=null?', रेट '+r.rate+' रुपये':'');}).join('। ');
     var totalQuantity=rows.reduce(function(total,row){return total+Number(row.qty||0);},0);
     this.el('tokenQuantity').value=totalQuantity;
     this.reviewSnapshot=this.snapshot();
@@ -2922,10 +2940,10 @@
       var service=resolveVoiceService_(text,false);
       var weightedService=voiceReadItems_('1 Weight '+text);
       var weightedRow=weightedService.items[0];
-      if(weightedService.items.length===1&&!weightedService.issues.length&&weightedRow.item==='Weight'&&weightedRow.weight>0&&/^(KG|KG WF)$/.test(weightedRow.service))service=weightedRow.service;
+      if(weightedService.items.length===1&&!weightedService.issues.length&&weightedRow.item==='Weight'&&weightedRow.weight>0&&/^(KG|WF|KG WF)$/.test(String(weightedRow.service).toUpperCase()))service=weightedRow.service;
       if(!service){this.ask('service','मैंने सुना '+text+'। Service समझ नहीं आई। वॉश आयरन, प्रेस, ड्राई क्लीन, के जी या फोल्ड बोलें।');return;}
       if(!rows[this.itemIndex]){this.ask('item','कपड़े की quantity और नाम दोबारा बोलें।');return;}
-      rows[this.itemIndex].service=service;if(!/^(KG|KG WF)$/.test(service))rows[this.itemIndex].weight=0;
+      rows[this.itemIndex].service=service;if(!/^(KG|WF|KG WF)$/.test(String(service).toUpperCase()))rows[this.itemIndex].weight=0;
       if(weightedRow&&weightedRow.service===service&&weightedRow.weight>0&&!weightedService.issues.length)rows[this.itemIndex].weight=weightedRow.weight;
       this.render(rows);this.nextItemField();return;
     }
@@ -2936,7 +2954,7 @@
       if(result.items.length!==1||!(result.items[0].weight>0)||result.issues.length){this.ask('weight','वजन दोबारा बोलें।');return;}
       if(!rows[this.itemIndex]){this.ask('item','कपड़े की quantity और नाम दोबारा बोलें।');return;}
       rows[this.itemIndex].weight=result.items[0].weight;
-      if(result.items[0].service==='KG WF')rows[this.itemIndex].service='KG WF';
+      if(/^(WF|KG WF)$/.test(String(result.items[0].service).toUpperCase()))rows[this.itemIndex].service=result.items[0].service;
       this.render(rows);this.nextItemField();return;
     }
     if(state==='more'){
