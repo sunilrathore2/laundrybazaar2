@@ -1374,9 +1374,21 @@
     }
 
 
+    function quickVoiceServiceCode_(spoken){
+      var quick=String(spoken||'').toLowerCase().replace(/[.,!?।:_\-]+/g,' ').replace(/\s+/g,' ').trim();
+      if(/^(?:1|one|won|wan|van|ek|i|eye|वन|एक|आई|आइ)$/i.test(quick))return 'WI';
+      if(/^(?:2|two|too|to|tu|do|टू|तु|दो)$/i.test(quick))return 'DC';
+      if(/^(?:3|three|tree|tri|teen|थ्री|ट्री|तीन)$/i.test(quick))return 'KG';
+      if(/^(?:4|four|for|fore|char|chaar|फोर|चार)$/i.test(quick))return 'IR';
+      if(/^(?:5|five|faiv|panch|paanch|फाइव|पांच|पाँच)$/i.test(quick))return 'WF';
+      return '';
+    }
+
     function detectVoiceServiceCode_(spoken,isKg){
       var original=String(spoken||'').toLowerCase().replace(/[.,!?।:_\-]+/g,' ').replace(/\s+/g,' ').trim();
       var cleaned=normalizeVoiceAliases_(original).toLowerCase().replace(/\b(?:service|please|karna|karni|karo|kar|do|hai|hain|chahiye|chahie|ki|ka|ke|me|mein)\b|(?:सर्विस|सेवा|प्लीज|करना|करनी|करो|कर|दो|है|हैं|चाहिए|की|का|के|में)/g,' ').replace(/\s+/g,' ').trim();
+      var quickCode=quickVoiceServiceCode_(original)||quickVoiceServiceCode_(cleaned);
+      if(quickCode)return quickCode;
       // Quick service code: during the dedicated service question,
       // बोलने पर 1 / one / ek / एक का अर्थ WI रहेगा।
       if(/^(?:1|one|won|ek|i|eye|आई|आइ|एक)$/i.test(cleaned))return 'WI';
