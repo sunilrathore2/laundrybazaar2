@@ -1302,7 +1302,7 @@
         // Washing combinations above must take precedence over standalone ironing.
         [/\bi\s*\.?\s*r\b|आई\s*आर/gi,'IR'],
         [/\b(?:(?:only|just|khali|sirf)\s+)?(?:iron(?:ing)?|press(?:ing)?|istri|istree)(?:\s+(?:press|iron(?:ing)?))?(?:\s+(?:karna|karo|kar\s*do))?(?:\s+hai)?\b/gi,'IR'],
-        [/(?:(?:खाली|सिर्फ|केवल)\s*)?(?:आयरनिंग|आयरन|प्रेस|प्रैस|इस्त्री|इस्तरी)(?:\s*(?:प्रेस|आयरनिंग|आयरन))?(?:\s*(?:करना|करो|कर\s*दो))?(?:\s*है)?/g,'IR'],
+        [/(?:(?:खाली|सिर्फ|केवल)\s*)?(?:आयरनिंग|आयरन|प्रेस|प्रैस|प्रेश|परेस|परेश|पिरेस|पीरेस|परिस|प्रिस|इस्त्री|इस्तरी)(?:\s*(?:प्रेस|आयरनिंग|आयरन))?(?:\s*(?:करना|करो|कर\s*दो))?(?:\s*है)?/g,'IR'],
         [/\b(?:k\s*\.?\s*g\.?|kgs?|(?:kay|key|ke)\s*(?:gee|jee|ji)|keji|kilo(?:\s*gram)?s?)\b|के\s*\.?\s*(?:जी|जि|गी)\.?|केज|किलो(?:\s*ग्राम)?/gi,'kg'],
         [/\b(?:s\s*h|shoe[s]?\s*clean(?:ing)?)\b|एस\s*एच|शू(?:ज़|ज)?\s*क्लीनिंग|जूते\s*की\s*सफाई/gi,'SH'],
         [/\b(?:sooj|jute|joote|joota|shoes?)\b|जूते|जूता|जुते|शूज़|शूज|शू/gi,'shoe'],
@@ -1355,7 +1355,7 @@
         WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','horse iron','hosh iron','horsh iron','hoss iron','vo siran','vosiran','vosh iron','washiran','wash aayaran','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
         WF:['wf','double u f','dablu ef','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','foald','foled','folding','old','bold','hold','cold','gold','told','sold','world','wass fold','vass fold','baas fold','wos fold','vos fold','bosh fold','wash old','wass old','vass bold','baas hold','wos cold','waash fold','वॉश फोल्ड','वाश फोल्ड','वास फोल्ड','फोल्ड','ओल्ड','बोल्ड','होल्ड','कोल्ड','गोल्ड','किलो वॉश फोल्ड'],
         DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
-        IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','presh','pris','pires','peeres','peres','pares','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','परेस','प्रीस','इस्त्री','खाली प्रेस'],
+        IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','pressh','presh','prash','pris','priss','prez','pires','pirees','peeres','peres','pares','paress','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','प्रेश','परेस','परेश','पिरेस','पीरेस','परिस','प्रिस','प्रीस','इस्त्री','खाली प्रेस'],
         KG:['kg','k g','kgs','kilo','keelo','killo','kilogram','kilo gram','keelo gram','keji','kay gee','key gee','केजी','के जी','किलो','कीलो','किलोग्राम'],
         SH:['sh','shoe','shoes','shoe clean','shoe cleaning','sooj','joota','joote','jute','जूता','जूते','शू','शूज','शूज़']
       };
@@ -1400,7 +1400,7 @@
       if(/(?:\bwi\b|dabl+oo?\s*(?:aai|ai|eye)|dablu\s*(?:aai|ai)|डब्ल्यू\s*(?:आई|आइ)|डब्लू\s*(?:आई|आइ))/i.test(original+' '+cleaned))return 'WI';
       // In Laundry Bazaar a standalone spoken "wash" means Wash & Iron.
       if(/^(?:wi|wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास)$/i.test(cleaned))return 'WI';
-      if(/(?:\bi\s*\.?\s*r\b|\b(?:iron|airon|ayaran|ayran|airan|iran|eraan|eren|irun|earn|ironing|ironning)\b|\b(?:a|ai|aai|i|hi|eye)\s*(?:run|ron)\b|\b(?:press+|pres+|presh|pris|pires|peeres|peres|pares|parais|pressing)\b|\b(?:istri|istree)\b|आयरन|आयरनिंग|आइरन|अयरन|ईरन|आई\s*रन|आइ\s*रन|प्रेस|प्रैस|परेस|प्रीस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
+      if(/(?:\bi\s*\.?\s*r\b|\b(?:iron|airon|ayaran|ayran|airan|iran|eraan|eren|irun|earn|ironing|ironning)\b|\b(?:a|ai|aai|i|hi|eye)\s*(?:run|ron)\b|\b(?:press+|pressh|presh|prash|pres+|pris+|prez|pires+|pirees|peeres|peres|pares+|parais|pressing)\b|\b(?:istri|istree)\b|आयरन|आयरनिंग|आइरन|अयरन|ईरन|आई\s*रन|आइ\s*रन|प्रेस|प्रैस|प्रेश|परेस|परेश|पिरेस|पीरेस|परिस|प्रिस|प्रीस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
       var direct=(cleaned.toUpperCase().match(/\b(?:WI|WF|DC|IR|SH|KG)\b/)||[])[0];
       return direct||fuzzyVoiceServiceCode_(original)||fuzzyVoiceServiceCode_(cleaned)||'';
     }
