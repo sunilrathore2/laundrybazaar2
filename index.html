@@ -1418,6 +1418,27 @@
       var pattern=/(?:(?:\brate|रेट|दर)\s*[:\-]?\s*(\d+(?:\.\d+)?)|(?:\b(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|rupaye|rupaiye|rupya|रुपये|रुपए|रुपया|रूपये)(?:\s*(?:का|की|के|ka|ki|ke|वाला|वाली|वाले|wala|wali|wale))?)|(?:\b(\d+(?:\.\d+)?)\s*(?:का|की|के|ka|ki|ke|वाला|वाली|वाले|wala|wali|wale)))(?=\s*$)/i;
       var m=text.match(pattern);return {rate:m?Number(m[1]||m[2]||m[3]):null,rest:m?text.replace(pattern,'').trim():text};
     }
+
+    // A guided rate answer may contain only a number, so it needs a parser
+    // separate from the free-form item parser (which deliberately requires
+    // words such as "rate" or "rupees" to avoid mistaking quantity for price).
+    function guidedRateValue_(input){
+      var raw=voiceClean_(normalizeVoiceAliases_(input)).toLowerCase();
+      var exact={
+        'बत्तीस':32,'पैंतीस':35,'चालीस':40,'पैंतालीस':45,'पचास':50,'पचपन':55,
+        'साठ':60,'पैंसठ':65,'सत्तर':70,'पचहत्तर':75,'अस्सी':80,'पचासी':85,
+        'नब्बे':90,'पंचानवे':95,'सौ':100,'एक सौ':100,'डेढ़ सौ':150,'डेढ सौ':150,
+        'दो सौ':200,'ढाई सौ':250,'तीन सौ':300,'चार सौ':400,'पांच सौ':500,'पाँच सौ':500
+      };
+      raw=raw.replace(/^\s*(?:rate|रेट|दर|price|कीमत)\s*[:\-]?\s*/i,'')
+        .replace(/\s*(?:rupees?|rs\.?|inr|rupaye|rupaiye|rupya|रुपये|रुपए|रुपया|रूपये)\s*$/i,'')
+        .replace(/\s*(?:का|की|के|ka|ki|ke|है|hai)\s*$/i,'').trim();
+      if(Object.prototype.hasOwnProperty.call(exact,raw))return exact[raw];
+      var converted=voiceNumberText_(raw).replace(/[,\s]/g,'');
+      if(!/^\d+(?:\.\d{1,2})?$/.test(converted))return null;
+      var value=Number(converted);
+      return Number.isFinite(value)&&value>=0&&value<=100000?value:null;
+    }
     function voiceIsBlankItem_(item){return !item.item && !item.service && !Number(item.weight) && (!Number(item.qty)||Number(item.qty)===1);}
 
     function voiceReadItems_(input){
