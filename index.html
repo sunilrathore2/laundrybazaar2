@@ -1370,6 +1370,9 @@
     function detectVoiceServiceCode_(spoken,isKg){
       var original=String(spoken||'').toLowerCase().replace(/[.,!?।:_\-]+/g,' ').replace(/\s+/g,' ').trim();
       var cleaned=normalizeVoiceAliases_(original).toLowerCase().replace(/\b(?:service|please|karna|karni|karo|kar|do|hai|hain|chahiye|chahie|ki|ka|ke|me|mein)\b|(?:सर्विस|सेवा|प्लीज|करना|करनी|करो|कर|दो|है|हैं|चाहिए|की|का|के|में)/g,' ').replace(/\s+/g,' ').trim();
+      // Quick service code: during the dedicated service question,
+      // बोलने पर 1 / one / ek / एक का अर्थ WI रहेगा।
+      if(/^(?:1|one|won|ek|i|eye|आई|आइ|एक)$/i.test(cleaned))return 'WI';
       var compact=(original+' '+cleaned).replace(/\s+/g,'');
       var hasKg=/(?:\bkg\b|\bkgs\b|\bkilo(?:gram)?s?\b|\bke\s*ji\b|\bkay\s*gee\b|के\s*जी|केजी|किलो)/i.test(original+' '+cleaned);
       var hasFold=/(?:\bwf\b|fold|folding|फोल्ड|फोल्डिंग)/i.test(original+' '+cleaned);
@@ -3144,9 +3147,5 @@ window.onAndroidGuidedPromptDone=function(id){guidedVoice_.promptDone(id);};
 window.onAndroidGuidedPartial=function(text){if(guidedVoice_.active&&guidedVoice_.listening)guidedVoice_.el('guidedTranscript').textContent=String(text||'');};
 document.addEventListener('visibilitychange',function(){if(document.hidden&&guidedVoice_.active)guidedVoice_.stop(true);});
 </script>
-</body>
-</html>
-
-    </script>
 </body>
 </html>
