@@ -1432,7 +1432,16 @@
       var code=detectVoiceServiceCode_(spoken,isKg);
       if(code==='BLK')return '';
       if(!code)return '';
-      return serviceOptions.find(function(opt){return serviceOptionCode_(opt)===code;})||'';
+      var matched=serviceOptions.find(function(opt){return serviceOptionCode_(opt)===code;});
+      if(matched)return matched;
+      // Speech can be recognized before/without a matching Services-sheet row.
+      // Keep the two canonical standalone services usable and ensure the
+      // selected value also exists in the rendered dropdown.
+      if(code==='IR'||code==='KG'){
+        if(!serviceOptions.some(function(opt){return String(opt).trim().toUpperCase()===code;}))serviceOptions.push(code);
+        return code;
+      }
+      return '';
     }
 
     function normalizeVoiceItem_(spoken){
@@ -2084,7 +2093,9 @@
 
     function setServices(opts) {
       serviceOptions = Array.isArray(opts) ? opts.slice() : [];
-      if(!serviceOptions.some(function(s){return String(s).trim().toUpperCase()==='KG';})) serviceOptions.push('KG');
+      ['KG','IR'].forEach(function(code){
+        if(!serviceOptions.some(function(s){return serviceOptionCode_(s)===code;}))serviceOptions.push(code);
+      });
       tokenServicesReady_ = serviceOptions.length > 0;
       renderItemsTable([]);
       if(document.getElementById('tokenItemsTable')) renderTokenItemsTable(getTokenItems(), true);
