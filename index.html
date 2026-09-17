@@ -1131,6 +1131,19 @@
       return window.SpeechRecognition || window.webkitSpeechRecognition || null; 
     }
 
+    function playVoiceReadyBeep_(){
+      try{
+        var AudioContextClass=window.AudioContext||window.webkitAudioContext;
+        if(!AudioContextClass)return;
+        var context=window.lbVoiceAudioContext_||(window.lbVoiceAudioContext_=new AudioContextClass());
+        if(context.state==='suspended')context.resume();
+        var oscillator=context.createOscillator(),gain=context.createGain(),now=context.currentTime;
+        oscillator.type='sine';oscillator.frequency.setValueAtTime(880,now);
+        gain.gain.setValueAtTime(0.0001,now);gain.gain.exponentialRampToValueAtTime(0.16,now+0.012);gain.gain.exponentialRampToValueAtTime(0.0001,now+0.13);
+        oscillator.connect(gain);gain.connect(context.destination);oscillator.start(now);oscillator.stop(now+0.14);
+      }catch(e){}
+    }
+
     function microphoneHelpMessage_(){
       return 'Microphone blocked है। Chrome में address bar के lock/site icon पर tap करें → Permissions → Microphone → Allow, फिर page reload करके voice button दबाएँ।';
     }
@@ -1273,6 +1286,58 @@
       return value.replace(/\bWF\s+kg\b/gi,'WF').replace(/\b(?:kg\s+)?WF\b/gi,'WF').replace(/\s+/g,' ').trim();
     }
 
+    function voiceEditDistance_(a,b){
+      a=String(a||'');b=String(b||'');
+      var previous=[],current=[],i,j;
+      for(j=0;j<=b.length;j++)previous[j]=j;
+      for(i=1;i<=a.length;i++){
+        current=[i];
+        for(j=1;j<=b.length;j++)current[j]=Math.min(current[j-1]+1,previous[j]+1,previous[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));
+        previous=current;
+      }
+      return previous[b.length];
+    }
+
+    function voiceComparable_(value,phonetic){
+      var text=String(value||'').toLowerCase().replace(/[^a-z0-9\u0900-\u097f]+/g,'');
+      if(!phonetic)return text.replace(/(.)\1{2,}/g,'$1$1');
+      return text.replace(/ph/g,'f').replace(/sh|ch/g,'s').replace(/th|dh/g,'d')
+        .replace(/[wv]/g,'v').replace(/[cq]/g,'k').replace(/z/g,'s').replace(/x/g,'ks')
+        .replace(/[aeiouy]/g,'').replace(/(.)\1+/g,'$1');
+    }
+
+    function voiceSimilarity_(heard,target){
+      var a=voiceComparable_(heard,false),b=voiceComparable_(target,false);
+      if(!a||!b)return 0;
+      var literal=1-voiceEditDistance_(a,b)/Math.max(a.length,b.length);
+      var pa=voiceComparable_(heard,true),pb=voiceComparable_(target,true);
+      var phonetic=pa&&pb?1-voiceEditDistance_(pa,pb)/Math.max(pa.length,pb.length):0;
+      return Math.max(literal,phonetic*0.96);
+    }
+
+    function fuzzyVoiceServiceCode_(heard){
+      var lexicon={
+        WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
+        WF:['wf','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','waash fold','वॉश फोल्ड','वाश फोल्ड','किलो वॉश फोल्ड'],
+        DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
+        IR:['ir','iron','ironing','press','pressing','pres','istri','istree','iron only','press only','आयरन','आयरनिंग','प्रेस','प्रैस','इस्त्री','खाली प्रेस'],
+        KG:['kg','kgs','kilo','kilogram','keji','kay gee','key gee','केजी','के जी','किलो','किलोग्राम'],
+        SH:['sh','shoe','shoes','shoe clean','shoe cleaning','sooj','joota','joote','jute','जूता','जूते','शू','शूज','शूज़']
+      };
+      var input=String(heard||'').replace(/\b(?:service|please|karna|karo|hai|ki|ka|ke)\b|(?:सर्विस|सेवा|करना|करो|है|की|का|के)/gi,' ').replace(/\s+/g,' ').trim();
+      var best={code:'',score:0},second=0;
+      Object.keys(lexicon).forEach(function(code){
+        lexicon[code].forEach(function(alias){
+          var score=voiceSimilarity_(input,alias);
+          if(score>best.score){second=best.score;best={code:code,score:score};}
+          else if(score>second)second=score;
+        });
+      });
+      var compact=voiceComparable_(input,false);
+      var threshold=compact.length<=3?0.78:compact.length<=5?0.60:0.56;
+      return best.score>=threshold&&(best.score-second>=0.035||best.score>=0.82)?best.code:'';
+    }
+
 
     function detectVoiceServiceCode_(spoken,isKg){
       var original=String(spoken||'').toLowerCase().replace(/[.,!?।:_\-]+/g,' ').replace(/\s+/g,' ').trim();
@@ -1290,7 +1355,7 @@
       if(/^(?:wi|wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास)$/i.test(cleaned))return 'WI';
       if(/(?:\bir\b|iron|ironing|press|pressing|pres|istri|istree|आयरन|आयरनिंग|प्रेस|प्रैस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
       var direct=(cleaned.toUpperCase().match(/\b(?:WI|WF|DC|IR|SH|KG)\b/)||[])[0];
-      return direct||'';
+      return direct||fuzzyVoiceServiceCode_(original)||fuzzyVoiceServiceCode_(cleaned)||'';
     }
 
     function resolveVoiceService_(spoken, isKg){
@@ -1435,6 +1500,34 @@
       var m=text.match(pattern);return {rate:m?Number(m[1]||m[2]||m[3]):null,rest:m?text.replace(pattern,'').trim():text};
     }
 
+    function fuzzySpokenRate_(heard){
+      var values={
+        10:['ten','das','दस'],15:['fifteen','pandrah','pandra','पंद्रह','पन्द्रह'],20:['twenty','bees','bis','बीस'],
+        25:['twenty five','pachis','pachhis','पच्चीस'],30:['thirty','tees','tis','तीस'],35:['thirty five','paitis','paintis','पैंतीस'],
+        40:['forty','chalis','chalees','चालीस'],45:['forty five','paintalis','paitalis','पैंतालीस'],50:['fifty','pachas','pachaas','pachass','पचास'],
+        60:['sixty','saath','sath','साठ'],70:['seventy','sattar','सत्तर'],75:['seventy five','pachattar','पचहत्तर'],
+        80:['eighty','assi','अस्सी'],90:['ninety','nabbe','navve','नब्बे'],100:['hundred','one hundred','sau','ek sau','सौ','एक सौ'],
+        120:['one twenty','ek sau bees','एक सौ बीस'],125:['one twenty five','sava sau','सवा सौ'],150:['one fifty','dedh sau','ded sau','derh sau','der sau','डेढ़ सौ','डेढ सौ'],
+        200:['two hundred','do sau','do so','दो सौ'],250:['two fifty','dhai sau','dhai so','ढाई सौ'],300:['three hundred','teen sau','teen so','तीन सौ'],
+        350:['three fifty','sadhe teen sau','साढ़े तीन सौ'],400:['four hundred','char sau','चार सौ'],500:['five hundred','panch sau','पaanch sau','पांच सौ','पाँच सौ']
+      };
+      var input=String(heard||'').toLowerCase().replace(/\b(?:rate|price|rupees?|rs|inr|rupaye|rupaiye|rupya|ka|ki|ke|hai)\b|(?:रेट|दर|कीमत|रुपये|रुपए|रुपया|का|की|के|है)|₹/gi,' ').replace(/\s+/g,' ').trim();
+      if(!input)return null;
+      var exactValue=null;
+      Object.keys(values).some(function(value){return values[value].some(function(alias){
+        if(input===String(alias).toLowerCase()){exactValue=Number(value);return true;}return false;
+      });});
+      if(exactValue!==null)return exactValue;
+      var best={value:null,score:0},second=0;
+      Object.keys(values).forEach(function(value){values[value].forEach(function(alias){
+        var inputWords=input.split(/\s+/).length,aliasWords=String(alias).split(/\s+/).length;
+        var score=voiceSimilarity_(input,alias)-(Math.abs(inputWords-aliasWords)*0.12);
+        if(score>best.score){second=best.score;best={value:Number(value),score:score};}
+        else if(score>second)second=score;
+      });});
+      return best.score>=0.62&&(best.score-second>=0.04||best.score>=0.84)?best.value:null;
+    }
+
     // A guided rate answer may contain only a number, so it needs a parser
     // separate from the free-form item parser (which deliberately requires
     // words such as "rate" or "rupees" to avoid mistaking quantity for price).
@@ -1455,9 +1548,22 @@
         .replace(/\s*(?:का|की|के|ka|ki|ke|है|hai)\s*$/i,'').trim();
       if(Object.prototype.hasOwnProperty.call(exact,raw))return exact[raw];
       var converted=voiceNumberText_(raw).replace(/^(?:rate|रेट|दर|price|कीमत)\s*/i,'').replace(/[,\s]/g,'');
-      if(!/^\d+(?:\.\d{1,2})?$/.test(converted))return null;
+      if(!/^\d+(?:\.\d{1,2})?$/.test(converted))return fuzzySpokenRate_(raw);
       var value=Number(converted);
       return Number.isFinite(value)&&value>=0&&value<=100000?value:null;
+    }
+
+    function bestGuidedSpeechAlternative_(state,result){
+      if(!result||!result.length)return '';
+      var best='',bestConfidence=-1;
+      for(var i=0;i<result.length;i++){
+        var transcript=String(result[i].transcript||'').trim();
+        if(!transcript)continue;
+        var valid=state==='service'?!!resolveVoiceService_(transcript,false):state==='rate'?guidedRateValue_(transcript)!==null:true;
+        var confidence=Number(result[i].confidence||0);
+        if(valid&&(best===''||confidence>bestConfidence)){best=transcript;bestConfidence=confidence;}
+      }
+      return best||String(result[0].transcript||'').trim();
     }
     function voiceIsBlankItem_(item){return !item.item && !item.service && !Number(item.weight) && (!Number(item.qty)||Number(item.qty)===1);}
 
@@ -2756,7 +2862,7 @@
       this.el('guidedQuestion').textContent=question;
     }
     if(window.speechSynthesis&&typeof SpeechSynthesisUtterance!=='undefined'){
-      var speech=new SpeechSynthesisUtterance(question);speech.lang='hi-IN';speech.rate=1.05;
+      var speech=new SpeechSynthesisUtterance(question);speech.lang='hi-IN';speech.rate=1.14;
       speech.onend=function(){self.promptDone(id);};speech.onerror=function(){self.promptDone(id);};
       window.speechSynthesis.speak(speech);
     }else this.promptDone(id);
@@ -2774,19 +2880,32 @@
     var Recognition=voiceRecognitionClass_();
     if(!Recognition){this.el('guidedTranscript').textContent='Microphone उपलब्ध नहीं है। नीचे जवाब लिखें।';return;}
     var recognition=new Recognition();this.recognition=recognition;
-    recognition.lang='hi-IN';recognition.interimResults=true;recognition.continuous=false;
+    recognition.lang='hi-IN';recognition.interimResults=true;recognition.continuous=false;recognition.maxAlternatives=5;
+    recognition.onstart=function(){
+      if(!self.active||self.epoch!==epoch)return;
+      playVoiceReadyBeep_();
+      self.el('guidedTranscript').textContent='🔔 अब बोलें…';
+    };
     recognition.onresult=function(event){
       if(!self.active||self.epoch!==epoch||!self.listening)return;
       var text='';for(var i=0;i<event.results.length;i++)text+=event.results[i][0].transcript+' ';
+      var last=event.results[event.results.length-1];
+      if(last.isFinal&&/^(service|rate)$/.test(self.state))text=bestGuidedSpeechAlternative_(self.state,last);
+      if(last.isFinal&&/^(confirm_entry|row_confirm|more|review)$/.test(self.state)){
+        for(var alternativeIndex=0;alternativeIndex<last.length;alternativeIndex++){
+          var quickAnswer=String(last[alternativeIndex].transcript||'').trim();
+          if(self.yesNo(quickAnswer)!==null){text=quickAnswer;break;}
+        }
+      }
       self.el('guidedTranscript').textContent=text.trim();
-      if(event.results[event.results.length-1].isFinal)self.receive(text.trim());
+      if(last.isFinal)self.receive(text.trim());
     };
     recognition.onerror=function(event){
       if(!self.active||self.epoch!==epoch||event.error==='no-speech'||event.error==='aborted')return;
       self.fail(event.error==='not-allowed'||event.error==='service-not-allowed'?microphoneHelpMessage_():'Microphone: '+event.error);
     };
     recognition.onend=function(){
-      if(self.active&&self.epoch===epoch&&self.listening){self.recognition=null;self.timer=setTimeout(function(){if(self.active&&self.epoch===epoch)self.listen();},500);}
+      if(self.active&&self.epoch===epoch&&self.listening){self.recognition=null;self.timer=setTimeout(function(){if(self.active&&self.epoch===epoch)self.listen();},150);}
     };
     try{recognition.start();}catch(e){this.fail('Microphone शुरू नहीं हुआ: '+e.message);}
   },
