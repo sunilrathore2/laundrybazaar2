@@ -1682,6 +1682,11 @@
       return {value:phone,rest:text.slice(end),complete:/^\d{10}$/.test(phone),error:phone.length>10?'Phone must be exactly 10 digits.':''};
     }
 
+    function phoneDigitsForSpeech_(value){
+      var names=['शून्य','एक','दो','तीन','चार','पाँच','छह','सात','आठ','नौ'];
+      return String(value||'').replace(/\D/g,'').split('').map(function(d){return names[Number(d)];}).join(', ');
+    }
+
     function parseVoiceToken_(speech, pending){
       var raw=String(speech||'').trim(),result={name:'',phone:'',deliveryDate:'',remark:'',items:[],issues:[],pending:null,fields:{},saveRequested:false};
       if(!pending && /^\s*(?:\d{1,2}|pandrah|pandra|pandara|fifteenth)(?:st|nd|rd|th)?\s*(?:तारीख़?|तारिख|tarikh|tareekh|date)(?=\s|$|[।,.])/i.test(voiceNumberText_(raw)))raw='delivery date '+raw;
@@ -1851,7 +1856,7 @@
         document.getElementById('voiceTokenBtn').disabled = false;
         return;
       }
-      var summary = 'Token for ' + name + ', phone ' + phone.split('').join(' ') + ', total quantity ' + document.getElementById('tokenQuantity').value + '. Save karoon? Haan ya nahin boliye.';
+      var summary = 'Token for ' + name + ', phone ' + phoneDigitsForSpeech_(phone) + ', total quantity ' + document.getElementById('tokenQuantity').value + '. Save karoon? Haan ya nahin boliye.';
       document.getElementById('voiceTokenStatus').textContent = 'Confirming: say Yes/Haan or No/Nahi.';
       
       if(window.speechSynthesis) {
@@ -3041,7 +3046,7 @@
     var totalQuantity=rows.reduce(function(total,row){return total+Number(row.qty||0);},0);
     this.el('tokenQuantity').value=totalQuantity;
     this.reviewSnapshot=this.snapshot();
-    this.ask('review','नाम '+this.value('tokenCustomerName')+'। फोन '+this.value('tokenPhone').split('').join(' ')+'। डिलीवरी '+this.value('tokenDeliveryDate')+'। '+readable+'। कुल मात्रा '+totalQuantity+'। सेव करूँ?');
+    this.ask('review','नाम '+this.value('tokenCustomerName')+'। फोन '+phoneDigitsForSpeech_(this.value('tokenPhone'))+'। डिलीवरी '+this.value('tokenDeliveryDate')+'। '+readable+'। कुल मात्रा '+totalQuantity+'। सेव करूँ?');
   },
   receive:function(answer){
     if(!this.active||!this.listening)return;
@@ -3075,7 +3080,9 @@
     if(/^(phone|name|date)$/.test(state)&&!this.acceptEntryOnce){
       var labels={phone:'फोन नंबर',name:'नाम',date:'डिलीवरी तारीख'};
       if(!this.validEntry(state,text)){this.entryPending=null;this.el('guidedTranscript').textContent='';this.ask(state,labels[state]+' का सही जवाब दोबारा बोलें। Hindi या English दोनों मान्य हैं।');return;}
-      this.entryPending={state:state,text:text,label:labels[state]};this.ask('confirm_entry',labels[state]+': '+text+'। सही?');return;
+      this.entryPending={state:state,text:text,label:labels[state]};
+      var confirmationText=state==='phone'?phoneDigitsForSpeech_(voiceReadPhone_(text).value):text;
+      this.ask('confirm_entry',labels[state]+': '+confirmationText+'। सही?');return;
     }
     this.acceptEntryOnce=false;
     if(state==='rate'){
