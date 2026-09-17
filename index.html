@@ -3100,10 +3100,10 @@
       if(!row.service){this.ask('service',row.qty+' '+row.item+' की सर्विस बोलें।');return;}
       if(/^(KG|WF|KG WF)$/.test(String(row.service).toUpperCase())&&!(Number(row.weight)>0)){this.ask('weight',row.qty+' '+row.item+' का कुल वजन बोलें।');return;}
       if(row.rate===''||row.rate==null||!Number.isFinite(Number(row.rate))||Number(row.rate)<0){this.ask('rate',row.qty+' '+row.item+' का रेट बोलें।');return;}
-      // Frequent-user fast mode: all required values are present, so avoid
-      // reading the complete row back and asking for another confirmation.
-      row.locked=true;this.render(rows,true);this.itemIndex=i+1;
-      this.ask('more','अगला आइटम मात्रा सहित बोलें, या बस बोलें।');return;
+      // Keep one short line confirmation for accuracy, but avoid the longer
+      // explanatory conversation used for new users.
+      var summary=row.qty+' '+row.item+', '+row.service+(/^(KG|WF|KG WF)$/.test(String(row.service).toUpperCase())?', '+row.weight+' किलो':'')+', '+row.rate+' रुपये';
+      this.ask('row_confirm',summary+'। सही?');return;
     }
     this.ask('more','और आइटम जोड़ना है?');
   },
@@ -3151,7 +3151,9 @@
       else this.ask('row_confirm','केवल हाँ, ओके या नहीं बोलें।');
       return;
     }
-    if(!this.fastMode&&/^(phone|name|date)$/.test(state)&&!this.acceptEntryOnce){
+    // In fast mode confirm only the phone number; name and date move ahead
+    // immediately. Phone accuracy is important for customer lookup.
+    if((state==='phone'||(!this.fastMode&&/^(name|date)$/.test(state)))&&!this.acceptEntryOnce){
       var labels={phone:'फोन नंबर',name:'नाम',date:'डिलीवरी तारीख'};
       if(!this.validEntry(state,text)){this.entryPending=null;this.el('guidedTranscript').textContent='';this.ask(state,labels[state]+' का सही जवाब दोबारा बोलें। Hindi या English दोनों मान्य हैं।');return;}
       this.entryPending={state:state,text:text,label:labels[state]};
@@ -3177,7 +3179,7 @@
         if(!self.active||self.epoch!==epoch||self.value('tokenPhone')!==phone.value)return;
         if(self.timer){clearTimeout(self.timer);self.timer=null;}
         if(typeof name==='string'&&name.trim()){
-          if(self.fastMode){self.el('tokenCustomerName').value=name.trim();self.ask('date','डिलीवरी की तारीख बोलें।');}
+          if(self.fastMode){self.el('tokenCustomerName').value=name.trim();self.ask('date','डिलीवरी तारीख बोलें।');}
           else{self.entryPending={state:'name',text:name.trim(),label:'नाम'};self.ask('confirm_entry','नाम '+name.trim()+'। सही?');}
         }
         else self.ask('name','इस नंबर का नाम नहीं मिला। आपका नाम क्या है?');
@@ -3186,7 +3188,7 @@
     if(state==='name'){
       var name=text.replace(/^(?:मेरा नाम|नाम|name|my name is)\s*/i,'').replace(/\s+है$/,'').trim();
       if(!name||/^\d+$/.test(name)){this.ask('name','नाम साफ़ बोलें।');return;}
-      this.el('tokenCustomerName').value=name;this.ask('date','डिलीवरी किस तारीख को चाहिए?');return;
+      this.el('tokenCustomerName').value=name;this.ask('date',this.fastMode?'डिलीवरी तारीख बोलें।':'डिलीवरी किस तारीख को चाहिए?');return;
     }
     if(state==='date'){
       var value=voiceDateToIso_(text);
