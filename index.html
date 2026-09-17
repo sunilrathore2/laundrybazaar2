@@ -929,7 +929,9 @@
       if(/^\d{10}$/.test(p)){
         const nameAtRequest=document.getElementById('tokenCustomerName').value;
         google.script.run.withSuccessHandler(function(n){
-          if(n && hindiFormText_(n) && document.getElementById('tokenPhone').value.trim()===p && document.getElementById('tokenCustomerName').value===nameAtRequest) document.getElementById('tokenCustomerName').value=n;
+          // Existing customer records may contain Hindi or English names.
+          // Do not silently discard a valid backend match based on script/language.
+          if(typeof n==='string' && n.trim() && document.getElementById('tokenPhone').value.trim()===p && document.getElementById('tokenCustomerName').value===nameAtRequest) document.getElementById('tokenCustomerName').value=n.trim();
         }).getCustomerByPhone(p, getActiveSessionToken());
       }
     }
@@ -2893,7 +2895,7 @@
       google.script.run.withSuccessHandler(function(name){
         if(!self.active||self.epoch!==epoch||self.value('tokenPhone')!==phone.value)return;
         if(self.timer){clearTimeout(self.timer);self.timer=null;}
-        if(typeof name==='string'&&hindiFormText_(name)){self.entryPending={state:'name',text:name.trim(),label:'नाम'};self.ask('confirm_entry','नाम '+name.trim()+'। सही?');}
+        if(typeof name==='string'&&name.trim()){self.entryPending={state:'name',text:name.trim(),label:'नाम'};self.ask('confirm_entry','नाम '+name.trim()+'। सही?');}
         else self.ask('name','इस नंबर का नाम नहीं मिला। आपका नाम क्या है?');
       }).withFailureHandler(function(e){if(self.active&&self.epoch===epoch)self.fail('Customer lookup नहीं हुआ: '+(e.message||e));}).getCustomerByPhone(phone.value,getActiveSessionToken());return;
     }
