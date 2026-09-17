@@ -1355,7 +1355,7 @@
         WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','horse iron','hosh iron','horsh iron','hoss iron','vo siran','vosiran','vosh iron','washiran','wash aayaran','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
         WF:['wf','double u f','dablu ef','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','foald','foled','folding','old','bold','hold','cold','gold','told','sold','world','wass fold','vass fold','baas fold','wos fold','vos fold','bosh fold','wash old','wass old','vass bold','baas hold','wos cold','waash fold','वॉश फोल्ड','वाश फोल्ड','वास फोल्ड','फोल्ड','ओल्ड','बोल्ड','होल्ड','कोल्ड','गोल्ड','किलो वॉश फोल्ड'],
         DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
-        IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','i run','ironning','ironing','earn','ion','press','pressing','pres','presh','pris','price','pares','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','प्रेस','प्रैस','परेस','प्रीस','इस्त्री','खाली प्रेस'],
+        IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','i run','ironning','ironing','earn','press','pressing','pres','presh','pris','pares','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','प्रेस','प्रैस','परेस','प्रीस','इस्त्री','खाली प्रेस'],
         KG:['kg','kgs','kilo','keelo','killo','kilogram','kilo gram','keji','kay gee','key gee','केजी','के जी','किलो','कीलो','किलोग्राम'],
         SH:['sh','shoe','shoes','shoe clean','shoe cleaning','sooj','joota','joote','jute','जूता','जूते','शू','शूज','शूज़']
       };
@@ -1389,12 +1389,6 @@
       var cleaned=normalizeVoiceAliases_(original).toLowerCase().replace(/\b(?:service|please|karna|karni|karo|kar|do|hai|hain|chahiye|chahie|ki|ka|ke|me|mein)\b|(?:सर्विस|सेवा|प्लीज|करना|करनी|करो|कर|दो|है|हैं|चाहिए|की|का|के|में)/g,' ').replace(/\s+/g,' ').trim();
       var quickCode=quickVoiceServiceCode_(original)||quickVoiceServiceCode_(cleaned);
       if(quickCode)return quickCode;
-      // Quick service code: during the dedicated service question,
-      // बोलने पर 1 / one / ek / एक का अर्थ WI रहेगा।
-      if(/^(?:1|one|won|ek|i|eye|आई|आइ|एक)$/i.test(cleaned))return 'WI';
-      if(/^(?:3|three|tree|teen|तीन)$/i.test(cleaned))return 'KG';
-      if(/^(?:4|four|for|char|chaar|चार)$/i.test(cleaned))return 'IR';
-      if(/^(?:5|five|panch|paanch|पांच|पाँच)$/i.test(cleaned))return 'WF';
       var compact=(original+' '+cleaned).replace(/\s+/g,'');
       var hasKg=/(?:\bkg\b|\bkgs\b|\b(?:kilo|keelo|killo)(?:\s*gram)?s?\b|\bke\s*ji\b|\bkay\s*gee\b|के\s*जी|केजी|किलो|कीलो)/i.test(original+' '+cleaned);
       var hasFold=/(?:\bwf\b|\b(?:fold|foald|foled|old|bold|hold|cold|gold|told|sold|world)(?:ing)?\b|फोल्ड|फोल्डिंग|ओल्ड|बोल्ड|होल्ड|कोल्ड|गोल्ड)/i.test(original+' '+cleaned);
@@ -1406,20 +1400,32 @@
       if(/(?:\bwi\b|dabl+oo?\s*(?:aai|ai|eye)|dablu\s*(?:aai|ai)|डब्ल्यू\s*(?:आई|आइ)|डब्लू\s*(?:आई|आइ))/i.test(original+' '+cleaned))return 'WI';
       // In Laundry Bazaar a standalone spoken "wash" means Wash & Iron.
       if(/^(?:wi|wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|वॉश|वाश|वास)$/i.test(cleaned))return 'WI';
-      if(/(?:\bir\b|\bi\s*r\b|iron|airon|a\s*iron|ai[\s-]*(?:run|ron)|ayaran|ayran|airan|iran|eraan|eren|irun|hi\s*run|i\s*run|earn|ion|ironing|ironning|press|pressing|pres|presh|pris|price|pares|parais|istri|istree|आयरन|आयरनिंग|आइरन|अयरन|ईरन|प्रेस|प्रैस|परेस|प्रीस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
+      if(/(?:\bir\b|\bi\s*r\b|iron|airon|a\s*iron|ai[\s-]*(?:run|ron)|ayaran|ayran|airan|iran|eraan|eren|irun|hi\s*run|i\s*run|earn|ironing|ironning|press|pressing|pres|presh|pris|pares|parais|istri|istree|आयरन|आयरनिंग|आइरन|अयरन|ईरन|प्रेस|प्रैस|परेस|प्रीस|इस्त्री|इस्तरी)/i.test(original+' '+cleaned))return 'IR';
       var direct=(cleaned.toUpperCase().match(/\b(?:WI|WF|DC|IR|SH|KG)\b/)||[])[0];
       return direct||fuzzyVoiceServiceCode_(original)||fuzzyVoiceServiceCode_(cleaned)||'';
+    }
+
+    function serviceOptionCode_(option){
+      var label=String(option||'').trim().toUpperCase().replace(/[._/()\[\]:-]+/g,' ').replace(/\s+/g,' ').trim();
+      // WF is weight-based and must win over KG in labels such as "KG WF"
+      // or "KG - Wash Fold".
+      if(/(?:^|\s)WF(?=\s|$)|WASH\s*(?:&|AND)?\s*FOLD|KG.*FOLD/.test(label))return 'WF';
+      // Prefer explicit standalone codes anywhere in a labelled option.
+      var explicit=label.match(/(?:^|\s)(WI|WF|DC|IR|SH|KG)(?=\s|$)/);
+      if(explicit)return explicit[1];
+      if(/WASH\s*(?:&|AND)?\s*IRON|WASH.*PRESS/.test(label))return 'WI';
+      if(/DRY.*CLEAN/.test(label))return 'DC';
+      if(/IRON(?:ING)?(?:\s*ONLY)?|PRESS(?:ING)?(?:\s*ONLY)?/.test(label))return 'IR';
+      if(/SHOE.*CLEAN/.test(label))return 'SH';
+      if(/^(?:KILO|KILOGRAM|KILO GRAM)$/.test(label))return 'KG';
+      return '';
     }
 
     function resolveVoiceService_(spoken, isKg){
       var code=detectVoiceServiceCode_(spoken,isKg);
       if(code==='BLK')return '';
-      var exact=serviceOptions.find(function(opt){return String(opt).trim().toUpperCase()===code;});
-      if(exact)return exact;
-      return serviceOptions.find(function(opt){
-        var o = String(opt).trim().toUpperCase();
-        return o === code || (code === 'WI' && /WASH.*IRON/.test(o)) || (code === 'WF' && /(?:WASH.*FOLD|KG\s*WF)/.test(o)) || (code === 'DC' && /DRY.*CLEAN/.test(o)) || (code === 'IR' && /^(IRON(?:ING)?|PRESS(?:ING)?)$/.test(o)) || (code === 'SH' && /SHOE/.test(o));
-      }) || '';
+      if(!code)return '';
+      return serviceOptions.find(function(opt){return serviceOptionCode_(opt)===code;})||'';
     }
 
     function normalizeVoiceItem_(spoken){
