@@ -1952,7 +1952,10 @@
             document.getElementById('phone').value = tok.phone || '';
             document.getElementById('customerName').value = tok.customerName || '';
             document.getElementById('deliveryDate').value = tok.deliveryDate || document.getElementById('orderDate').value;
-            if(Array.isArray(tok.items) && tok.items.length) renderItemsTable(tok.items.map(function(it){ return {service:it.service,item:it.item,qty:it.qty,weight:it.weight,rate:it.rate==null?'':it.rate,amt:0}; }));
+            if(Array.isArray(tok.items) && tok.items.length) renderItemsTable(tok.items.map(function(it){
+              var rate=Number(it.rate)||0,qty=Number(it.qty)||0,weight=Number(it.weight)||0;
+              return {service:it.service,item:it.item,qty:qty,weight:weight,rate:it.rate==null?'':it.rate,amt:Math.round(rate*(isWeightOrderService_(it.service)?weight:qty))};
+            }));
             var tokenContinuation = 'Token Number: ' + (tok.tokenNumber || '') +
               ' | Total Quantity: ' + (tok.quantity || 0) +
               ' | Remark: ' + (tok.remark || '—');
@@ -2156,7 +2159,17 @@
       renderItemsTable(items);
     }
 
+    function isWeightOrderService_(service){
+      return /^(?:KG|WF|KG WF)$/.test(String(service||'').trim().toUpperCase());
+    }
+
     function renderItemsTable(items) {
+      items=Array.isArray(items)?items:[];
+      items=items.map(function(it){
+        var copy=Object.assign({},it),rate=Number(copy.rate)||0,qty=Number(copy.qty)||0,weight=Number(copy.weight)||0;
+        copy.amt=Math.round(rate*(isWeightOrderService_(copy.service)?weight:qty));
+        return copy;
+      });
       let html = `<table><thead><tr>
         <th>Service</th><th>Item</th><th>Rate</th><th>Qty</th><th>Amount</th><th></th></tr></thead><tbody>`;
       for (let i = 0; i < items.length; i++) {
@@ -2176,7 +2189,7 @@
       document.getElementById('itemsTable').innerHTML = html;
       document.querySelectorAll('#itemsTable .service').forEach(function(select){
         let row=select.closest('tr');
-        let isKg=select.value.trim().toUpperCase()==='KG';
+        let isKg=isWeightOrderService_(select.value);
         row.querySelector('.qty').disabled=false;
         let weight=row.querySelector('.weight');
         weight.disabled=!isKg;
@@ -2190,14 +2203,14 @@
       let rate = +row.querySelector('.rate').value || 0;
       let qty = +row.querySelector('.qty').value || 0;
       let weight = +row.querySelector('.weight').value || 0;
-      let isKg = row.querySelector('.service').value.trim().toUpperCase() === 'KG';
+      let isKg = isWeightOrderService_(row.querySelector('.service').value);
       row.querySelector('.amt').value = Math.round(rate * (isKg ? weight : qty));
       calcTotal();
     }
 
     function handleServiceChange(select) {
       let row=select.closest('tr');
-      let isKg=select.value.trim().toUpperCase()==='KG';
+      let isKg=isWeightOrderService_(select.value);
       let qty=row.querySelector('.qty');
       let weight=row.querySelector('.weight');
       qty.disabled=false;
