@@ -1304,8 +1304,8 @@
         [/\b(?:(?:only|just|khali|sirf)\s+)?(?:iron(?:ing)?|press(?:ing)?|istri|istree)(?:\s+(?:press|iron(?:ing)?))?(?:\s+(?:karna|karo|kar\s*do))?(?:\s+hai)?\b/gi,'IR'],
         [/(?:(?:खाली|सिर्फ|केवल)\s*)?(?:आयरनिंग|आयरन|प्रेस|प्रैस|प्रेश|परेस|परेश|पिरेस|पीरेस|परिस|प्रिस|इस्त्री|इस्तरी)(?:\s*(?:प्रेस|आयरनिंग|आयरन))?(?:\s*(?:करना|करो|कर\s*दो))?(?:\s*है)?/g,'IR'],
         [/\b(?:k\s*\.?\s*g\.?|kgs?|(?:kay|key|ke|ki|kee)\s*(?:gee|jee|ji|g)|keji|kiji|(?:kilo|kelo|keelo|killo)(?:\s*gram(?:me)?)?s?)\b|(?:के|की|कि)\s*\.?\s*(?:जी|जि|गी)\.?|केज|कीजी|किजी|किलो(?:ं|\s*ग्राम)?|कीलो|किल्लो|किलोग्राम/gi,'kg'],
-        [/\b(?:s\s*h|shoe[s]?\s*clean(?:ing)?)\b|एस\s*एच|शू(?:ज़|ज)?\s*क्लीनिंग|जूते\s*की\s*सफाई/gi,'SH'],
-        [/\b(?:sooj|jute|joote|joota|shoes?)\b|जूते|जूता|जुते|शूज़|शूज|शू/gi,'shoe'],
+        [/\b(?:s\s*h|shoe[s]?\s*clean(?:ing)?)\b|एस\s*एच|शू(?:ज़|ज|ज्)?\s*क्लीनिंग|जूते?\s*की\s*सफाई/gi,'SH'],
+        [/\b(?:shoe|shoes|shoo|shoos|shu|shuz|sooj|sooz|soo|su|jute|joote|joota|joota|jutee)\b|जूते|जूता|जूती|जुते|जुता|जोते|जोता|शूज़|शूज|शू|सूज|सू/gi,'shoe'],
         [/\bb\s*l\s*k\b|बी\s*एल\s*के/gi,'BLK'],
         [/\b(?:sart|shart|shert)\b|सर्ट|शर्ट/gi,'shirt'],
         [/\b(?:paint|pent|paant)\b|पेंट|पैंट/gi,'pant'],
@@ -1357,7 +1357,7 @@
         DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
         IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','pressh','presh','prash','pris','priss','prez','pires','pirees','peeres','peres','pares','paress','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','प्रेश','परेस','परेश','पिरेस','पीरेस','परिस','प्रिस','प्रीस','इस्त्री','खाली प्रेस'],
         KG:['kg','k g','kgs','keygee','kaygee','ke g','ki ji','kee jee','keji','kiji','kilo','kilos','kiloes','kelo','keelo','killo','kilogram','kilogramme','kilo gram','keelo gram','kay gee','key gee','केजी','के जी','के जि','कीजी','की जी','कि जी','किजी','किलो','किलों','कीलो','किल्लो','किलो ग्राम','किलोग्राम'],
-        SH:['sh','shoe','shoes','shoe clean','shoe cleaning','sooj','joota','joote','jute','जूता','जूते','शू','शूज','शूज़']
+        SH:['sh','shoe','shoes','shoo','shoos','shu','shuz','soo','su','shoe clean','shoe cleaning','sooj','sooz','joota','joote','jute','jutee','जूता','जूते','जूती','जुता','जुते','जोता','जोते','शू','शूज','शूज़','सू','सूज']
       };
       var input=String(heard||'').replace(/\b(?:service|please|karna|karo|hai|ki|ka|ke)\b|(?:सर्विस|सेवा|करना|करो|है|की|का|के)/gi,' ').replace(/\s+/g,' ').trim();
       var best={code:'',score:0},second=0;
@@ -1390,9 +1390,10 @@
       var quickCode=quickVoiceServiceCode_(original)||quickVoiceServiceCode_(cleaned);
       if(quickCode)return quickCode;
       var compact=(original+' '+cleaned).replace(/\s+/g,'');
+      if(/^(?:kg)+$/i.test(compact)||/^(?:केजी|कीजी|किजी)+$/.test(compact))return 'KG';
       var hasKg=/(?:\bk\s*\.?\s*g\b|\bkgs?\b|\b(?:kilo|kelo|keelo|killo)(?:e?s|\s*gram(?:me)?s?)?\b|\b(?:ke|ki|kee)\s*(?:g|ji|jee)\b|\b(?:kay|key)\s*gee\b|के\s*(?:जी|जि)|की\s*जी|कि\s*जी|केजी|कीजी|किजी|किलो|किलों|कीलो|किल्लो|किलो\s*ग्राम|किलोग्राम)/i.test(original+' '+cleaned);
       var hasFold=/(?:\bwf\b|\b(?:fold|foald|foled|old|bold|hold|cold|gold|told|sold|world)(?:ing)?\b|फोल्ड|फोल्डिंग|ओल्ड|बोल्ड|होल्ड|कोल्ड|गोल्ड)/i.test(original+' '+cleaned);
-      if(/(?:\bsh\b|shoe|shoes|sooj|joota|joote|jute|जूता|जूते|शू|शूज|शूज़)/i.test(original+' '+cleaned))return 'SH';
+      if(/(?:\bsh\b|shoe|shoes|shoo|shoos|shu|shuz|sooj|sooz|joota|joote|jutee?|जूता|जूते|जूती|जुता|जुते|जोता|जोते|शू|शूज|शूज़|सूज)/i.test(original+' '+cleaned))return 'SH';
       if(hasFold)return 'WF'; // WF is the weight-based Wash & Fold service.
       if(isKg||hasKg||/^(?:grams?|gm|ग्राम)$/.test(cleaned))return 'KG';
       if(/(?:\bd\s*c\b|dry\s*clean|dryclean|ड्राई\s*क्लीन|ड्रायक्लीन|डी\s*सी)/i.test(original+' '+cleaned)||/^(?:dc)+$/i.test(compact))return 'DC';
@@ -1437,7 +1438,7 @@
       // Speech can be recognized before/without a matching Services-sheet row.
       // Keep the two canonical standalone services usable and ensure the
       // selected value also exists in the rendered dropdown.
-      if(code==='WI'||code==='IR'||code==='KG'){
+      if(code==='WI'||code==='IR'||code==='KG'||code==='SH'){
         if(!serviceOptions.some(function(opt){return String(opt).trim().toUpperCase()===code;}))serviceOptions.push(code);
         return code;
       }
@@ -1484,7 +1485,7 @@
         ['सोफा|सोफ़ा','sofa'],['कवर|covers','cover'],['मध्यम|मीडियम|medium','medium'],
         ['छोटे|स्मॉल|chhota|chota|small','small'],
         ['स्पोर्ट्स|खेल|sports','sports'],['कैनवास|canvas','canvas'],['स्वेड|सुएड|suede','suede'],
-        ['जूते|जूता|जुते|शू|शूज़|shoes|joota|joote|jute','shoe']
+        ['जूते|जूता|जूती|जुते|जुता|जोते|जोता|शू|शूज|शूज़|सूज|shoe|shoes|shoo|shoos|shu|shuz|sooj|sooz|joota|joote|jute|jutee','shoe']
       ];
       words.forEach(function(pair){
         text = text.replace(new RegExp('(^|\\s)(?:'+pair[0]+')(?=\\s|$)','gi'),function(_,prefix){return prefix+pair[1];});
@@ -2103,7 +2104,7 @@
 
     function setServices(opts) {
       serviceOptions = Array.isArray(opts) ? opts.slice() : [];
-      ['WI','KG','IR'].forEach(function(code){
+      ['WI','KG','IR','SH'].forEach(function(code){
         if(!serviceOptions.some(function(s){return serviceOptionCode_(s)===code;}))serviceOptions.push(code);
       });
       tokenServicesReady_ = serviceOptions.length > 0;
