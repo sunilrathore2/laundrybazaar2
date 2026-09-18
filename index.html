@@ -1280,8 +1280,16 @@
       return text.replace(/[A-Za-z\u0900-\u097F]+/g, function(w){ return Object.prototype.hasOwnProperty.call(map, w.toLowerCase()) ? map[w.toLowerCase()] : w; });
     }
 
+    // Canonicalize letter-by-letter KG before punctuation and filler cleanup.
+    function normalizeKgSpelling_(text){
+      return String(text||'')
+        .replace(/\bk[\s.\-]*g\b\.?/gi,'kg')
+        .replace(/\b(?:kay|key|ke|kee|ki)[\s.\-]*(?:gee|jee|ji|g)\b\.?/gi,'kg')
+        .replace(/(^|[\s,;:])(?:के|की|कि)[\s.\-]*(?:जी|जि|गी)\.?(?=\s|$|[,;।])/g,'$1kg');
+    }
+
     function normalizeVoiceAliases_(text){
-      var value = String(text||'').replace(/(\d)(?=kgs?\b)/gi,'$1 ').replace(/\bkg\s*-\s*gram\b/gi,'kg');
+      var value = normalizeKgSpelling_(text).replace(/(\d)(?=kgs?\b)/gi,'$1 ').replace(/\bkg\s*-\s*gram\b/gi,'kg');
       var aliases = [
         // Recognizer may drop the K in "KG Fold"; only accept G before Fold.
         [/\bg\s+fold\b/gi,'WF'],
@@ -1385,7 +1393,7 @@
     }
 
     function detectVoiceServiceCode_(spoken,isKg){
-      var original=String(spoken||'').toLowerCase().replace(/[.,!?।:_\-]+/g,' ').replace(/\s+/g,' ').trim();
+      var original=normalizeKgSpelling_(spoken).toLowerCase().replace(/[.,!?।:_\-]+/g,' ').replace(/\s+/g,' ').trim();
       var cleaned=normalizeVoiceAliases_(original).toLowerCase().replace(/\b(?:service|please|karna|karni|karo|kar|do|hai|hain|chahiye|chahie|ki|ka|ke|me|mein)\b|(?:सर्विस|सेवा|प्लीज|करना|करनी|करो|कर|दो|है|हैं|चाहिए|की|का|के|में)/g,' ').replace(/\s+/g,' ').trim();
       var quickCode=quickVoiceServiceCode_(original)||quickVoiceServiceCode_(cleaned);
       if(quickCode)return quickCode;
@@ -1571,7 +1579,7 @@
 
     function voiceBlankItem_(){return {service:'',item:'',qty:0,weight:0,rate:'',amt:0};}
     function readVoiceRate_(input){
-      var text=voiceNumberText_(normalizeVoiceAliases_(input));
+      var text=voiceNumberText_(normalizeVoiceAliases_(itemQuantityNumberText_(input)));
       var pattern=/(?:(?:\brate|रेट|दर)\s*[:\-]?\s*(\d+(?:\.\d+)?)|(?:\b(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|rupaye|rupaiye|rupya|रुपये|रुपए|रुपया|रूपये)(?:\s*(?:का|की|के|ka|ki|ke|वाला|वाली|वाले|wala|wali|wale))?)|(?:\b(\d+(?:\.\d+)?)\s*(?:का|की|के|ka|ki|ke|वाला|वाली|वाले|wala|wali|wale)))(?=\s*$)/i;
       var m=text.match(pattern);return {rate:m?Number(m[1]||m[2]||m[3]):null,rest:m?text.replace(pattern,'').trim():text};
     }
@@ -1648,9 +1656,41 @@
     }
     function voiceIsBlankItem_(item){return !item.item && !item.service && !Number(item.weight) && (!Number(item.qty)||Number(item.qty)===1);}
 
+    // Item-only vocabulary: never apply these aliases to customer names or phones.
+    function itemQuantityNumberText_(value){
+      var groups = [
+        'शून्य|zero|shunya', 'एक|ek|aik', 'दो|do', 'तीन|teen|tin', 'चार|char|chaar',
+        'पांच|पाँच|panch|paanch', 'छह|छः|छे|छै|che|chhe|chhah|chah', 'सात|saat|sat', 'आठ|aath|ath', 'नौ|nau',
+        'दस|das', 'ग्यारह|ग्यारहा|gyarah|gyara|gyaarah', 'बारह|बारा|barah|bara|baarah', 'तेरह|तेरा|terah|tera', 'चौदह|चौदा|chaudah|chauda',
+        'पंद्रह|पन्द्रह|पंदरा|पन्द्रा|pandrah|pandra|pandara', 'सोलह|सोला|solah|sola', 'सत्रह|सतरा|सतरह|satrah|satra', 'अठारह|अठारा|atharah|athara', 'उन्नीस|उनिस|unnees|unnis',
+        'बीस|bees|bis', 'इक्कीस|इकीस|ikkees|ikkis|ikees', 'बाईस|बाइस|baees|bais|baais', 'तेईस|तेइस|teis|teyes', 'चौबीस|chaubees|chaubis',
+        'पच्चीस|पचीस|pachchees|pachchis|pachees', 'छब्बीस|छबीस|chhabbees|chhabbis|chabbis', 'सत्ताईस|सत्ताइस|sattais|sattaiis', 'अट्ठाईस|अट्ठाइस|अठाईस|atthais|athais', 'उनतीस|उन्तीस|untees|untis',
+        'तीस|tees|tis', 'इकतीस|इकत्तीस|iktees|iktis', 'बत्तीस|बतीस|battees|battis', 'तैंतीस|तैतीस|taintees|taintis', 'चौंतीस|चौतीस|chauntees|chauntis',
+        'पैंतीस|पैतीस|paintees|paintis', 'छत्तीस|छतीस|chhattees|chhattis', 'सैंतीस|सैतीस|saintees|saintis', 'अड़तीस|अड़तीस|अडतीस|adtees|adtis', 'उनतालीस|उनतालिस|untalis|untaalis',
+        'चालीस|चालिस|chalis|chaalis', 'इकतालीस|इकतालिस|iktalis|iktaalis', 'बयालीस|बयालिस|bayalis|bayaalis', 'तैंतालीस|तैतालीस|taintalis', 'चवालीस|चौवालीस|chavalis|chauvalis',
+        'पैंतालीस|पैतालीस|paintalis', 'छियालीस|छियालिस|chhiyalis|chiyalis', 'सैंतालीस|सैतालीस|saintalis', 'अड़तालीस|अड़तालीस|अडतालीस|adtalis', 'उनचास|unchas|unchaas',
+        'पचास|pachas|pachaas', 'इक्यावन|इक्यावन|ikyavan|ikyawan', 'बावन|bavan|bawan', 'तिरपन|tirpan', 'चौवन|चौव्वन|chauvan|chauwan',
+        'पचपन|pachpan', 'छप्पन|chhappan|chappan', 'सत्तावन|सतावन|sattavan|sattawan', 'अट्ठावन|अठावन|atthavan|atthawan', 'उनसठ|unsath',
+        'साठ|saath', 'इकसठ|iksath', 'बासठ|baasath|basath', 'तिरसठ|tirsath', 'चौंसठ|चौसठ|chaunsath|chausath',
+        'पैंसठ|पैसठ|painsath', 'छियासठ|chhiyasath|chiyasath', 'सड़सठ|सड़सठ|सडसठ|sadsath', 'अड़सठ|अड़सठ|अडसठ|adsath', 'उनहत्तर|unhattar',
+        'सत्तर|sattar', 'इकहत्तर|ikhattar', 'बहत्तर|bahattar', 'तिहत्तर|tihattar', 'चौहत्तर|chauhattar',
+        'पचहत्तर|पचहतर|pachhattar', 'छिहत्तर|छिहतर|chhihattar', 'सतहत्तर|satahattar|sathattar', 'अठहत्तर|athhattar|athattar', 'उनासी|unasi|unaasi',
+        'अस्सी|assi|assee', 'इक्यासी|ikyasi', 'बयासी|bayasi', 'तिरासी|tirasi', 'चौरासी|chaurasi',
+        'पचासी|pachasi', 'छियासी|chhiyasi|chiyasi', 'सत्तासी|sattasi', 'अट्ठासी|अठासी|atthasi|athasi', 'नवासी|navasi|nawasi',
+        'नब्बे|nabbe|navve', 'इक्यानवे|इक्यानबे|ikyanve|ikyanbe', 'बानवे|बानबे|banve|baanve', 'तिरानवे|तिरानबे|tiranve', 'चौरानवे|चौरानबे|chauranve',
+        'पंचानवे|पचानवे|पचानबे|panchanve|pachanve', 'छियानवे|छियानबे|chhiyanve|chiyanve', 'सत्तानवे|सतानवे|sattanve', 'अट्ठानवे|अठानवे|atthanve|athanve', 'निन्यानवे|निन्यानबे|ninyanve'
+      ];
+      var words={};groups.forEach(function(group,n){group.split('|').forEach(function(word){words[word]=n;});});
+      var text=String(value||'').replace(/[०-९]/g,function(d){return '०१२३४५६७८९'.indexOf(d);});
+      text=text.replace(/[A-Za-z\u0900-\u097F]+/g,function(word){var key=word.toLowerCase();return Object.prototype.hasOwnProperty.call(words,key)?String(words[key]):word;});
+      text=voiceNumberText_(text);
+      text=text.replace(/(?:\b(\d{1,2})\s+)?(?:सौ|sau|hundred)(?=\s|$)(?:\s+(\d{1,2})(?=\s|$))?/gi,function(_,a,b){return String(Number(a||1)*100+Number(b||0));});
+      return text;
+    }
+
     function voiceReadItems_(input){
       // Normalize the service before splitting "and": wash AND iron stays one service.
-      var text=voiceNumberText_(normalizeVoiceAliases_(input)).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ');
+      var text=voiceNumberText_(normalizeVoiceAliases_(itemQuantityNumberText_(input))).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ');
       // Accept natural quantity expressions in either order:
       // "2 piece shirt", "shirt 2", "शर्ट के 2", "दो नग पैंट".
       text=text.replace(/^(\d+)\s*(?:pieces?|pcs?|piece|नग|पीस|जोड़ी|जोड़ी)\s+/i,'$1 ');
@@ -2915,6 +2955,14 @@
     }
   
 
+    // Expand service codes only for speech; keep stored values and visible prompts intact.
+    function tokenPromptForSpeech_(text) {
+      var names = { WI: 'वॉश आयरन', IR: 'आयरन', SH: 'शू क्लीनिंग' };
+      return String(text || '').replace(/\b(?:WI|IR|SH)\b/g, function(code) {
+        return names[code];
+      });
+    }
+
     var guidedVoice_ = {
   active:false, state:'', epoch:0, promptId:'', listening:false, recognition:null, fastMode:true, lastQuestion:'',
   timer:null, itemSpeechTimer:null, itemSpeechBuffer:'', phoneBuffer:'', itemIndex:0, pendingItemDraft:null, pendingService:'', lastAuto:'', loadingToken:false, suppressAutoOnce:false, detailsOnly:false,
@@ -2974,12 +3022,12 @@
     var controls=this.el('guidedQuickAnswers');
     if(!controls){controls=document.createElement('div');controls.id='guidedQuickAnswers';controls.innerHTML='<button type="button" class="btn">हाँ / Yes</button> <button type="button" class="btn">नहीं / No</button>';this.el('guidedAnswer').parentNode.appendChild(controls);var self=this;controls.children[0].onclick=function(){self.el('guidedAnswer').value='हाँ';self.submitTyped();};controls.children[1].onclick=function(){self.el('guidedAnswer').value='नहीं';self.submitTyped();};}
     controls.hidden=!/^(confirm_entry|item_name_confirm|service_confirm|row_confirm|more|review)$/.test(state);
-    if(window.AndroidVoice&&window.AndroidVoice.speakPrompt){window.AndroidVoice.speakPrompt(question,id);return;}
+    if(window.AndroidVoice&&window.AndroidVoice.speakPrompt){window.AndroidVoice.speakPrompt(tokenPromptForSpeech_(question),id);return;}
     if(window.AndroidVoice&&!window.AndroidVoice.speakPrompt){
       this.el('guidedQuestion').textContent=question;
     }
     if(window.speechSynthesis&&typeof SpeechSynthesisUtterance!=='undefined'){
-      var speech=new SpeechSynthesisUtterance(question);speech.lang='hi-IN';speech.rate=1.14;
+      var speech=new SpeechSynthesisUtterance(tokenPromptForSpeech_(question));speech.lang='hi-IN';speech.rate=1.14;
       speech.onend=function(){self.promptDone(id);};speech.onerror=function(){self.promptDone(id);};
       window.speechSynthesis.speak(speech);
     }else this.promptDone(id);
