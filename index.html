@@ -3185,8 +3185,8 @@
     if(/(?:^|\s)(?:nhi|nahee|nai|naah|नहि|rehne do|rahne do|रहने दो|छोड़ो|छोडो|रुको|ruko|incorrect)(?:\s|$)/.test(s))return false;
     // Any clear negative intent wins, even when action words follow it.
     if(/(?:^|\s)(?:नहीं|नही|ना|मत|गलत|रद्द|no|nope|nah|nahi|nahin|not|don't|dont|wrong|cancel|reject|negative)(?:\s|$)/.test(s))return false;
-    // Short affirmative words/sounds; negatives above always win.
-    if(/^(?:hm+|hmm+|mmm+|mm[- ]?hm+|uh[- ]?huh|uh[- ]?ha|hu+n|hao|hanji|haanji|हनजी|हांजी|हम्म+|हूं|हूँ|हाओ)(?:\s+(?:ji|jee|जी|please|प्लीज))?$/.test(s))return true;
+    // Short affirmative sounds requested for confirmation; negatives above win.
+    if(/^(?:hm+|hu+n|hao|hanji|haanji|हनजी|हांजी|हम्म|हूं|हूँ|हाओ)(?:\s+(?:ji|jee|जी|please|प्लीज))?$/.test(s))return true;
     // Accept natural affirmative sentences, not only one exact word.
     if(/(?:^|\s)(?:हाँ|हां|हा|हाँजी|हांजी|हाजी|जी हाँ|जी हां|हूँ|हूं|haan|haa|han|ha|hanji|yes|yeah|yep|yup|sure|correct|affirmative|positive)(?:\s|$)/.test(s))return true;
     if(/^(?:जी|ओके|ओकेय|ठीक|ठीक है|ठीक है जी|बिल्कुल|बिल्कुल सही|सही|सही है|सही है जी|करो|कर दो|कर दीजिए|कर दें|हो गया|चलो|आगे|अगला|जारी रखो|जोड़ो|जोडो|और जोड़ो|और जोडो|ok+|okay|okey|theek|theek hai|thik|thik hai|bilkul|bilkul sahi|sahi|sahi hai|right|fine|good|done right|go ahead|proceed|continue|next|confirm|confirmed|do it|kar do|kardo|jodo|aur jodo|add|add it|add more|save|save it|save token)(?:\s+(?:जी|please|प्लीज))?$/.test(s))return true;
@@ -3360,9 +3360,7 @@
         if(!self.active||self.epoch!==epoch||self.value('tokenPhone')!==phone.value)return;
         if(self.timer){clearTimeout(self.timer);self.timer=null;}
         if(typeof name==='string'&&name.trim()){
-          self.entryPending=null;
-          self.el('tokenCustomerName').value=name.trim();
-          self.ask('date','डिलीवरी कब चाहिए? तारीख बोलें।');
+          self.el('tokenCustomerName').value=name.trim();self.ask('date','डिलीवरी कब चाहिए? तारीख बोलें।');
         }
         else self.ask('name','आपका नाम नहीं मिला। कृपया अपना नाम बताएं।');
       }).withFailureHandler(function(e){if(self.active&&self.epoch===epoch)self.fail('Customer lookup नहीं हुआ: '+(e.message||e));}).getCustomerByPhone(phone.value,getActiveSessionToken());return;
@@ -3385,9 +3383,6 @@
       if(result.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){this.ask('item','पूरी आइटम लाइन साफ़ दोहराएँ।');return;}
         incoming[0].service=incoming[0].service||resolveVoiceService_('WI',false)||'WI';incoming[0].locked=false;
       rows.splice(this.itemIndex,this.itemIndex<rows.length?1:0,incoming[0]);this.render(rows,true);
-      if(String(this.rows()[this.itemIndex].service).toUpperCase()==='WI'){
-        this.ask('service_fast','सर्विस WI है। अगर सर्विस बदलनी है तो दूसरी सर्विस का नाम बोलें। नहीं तो रेट बोलें।');return;
-      }
       this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
     }
     if(state==='service_fast'){
@@ -3397,16 +3392,8 @@
         this.pendingService=fastService;this.ask('service_confirm','सर्विस '+fastService+'। सही?');return;
       }
       if(fastRate!==null){rows[fastTarget].rate=fastRate;this.render(rows);this.nextItemField();return;}
-      if(fastAnswer===true){
-        if(String(rows[fastTarget].service).toUpperCase()==='WI'){
-          this.ask('rate',rows[fastTarget].qty+' '+rows[fastTarget].item+' का रेट बोलें।');return;
-        }
-        this.nextItemField();return;
-      }
-      if(String(rows[fastTarget].service).toUpperCase()==='WI'){
-        this.ask('service_fast','सर्विस WI है। अगर सर्विस बदलनी है तो दूसरी सर्विस का नाम बोलें। नहीं तो रेट बोलें।');return;
-      }
-      this.ask('service_fast','दूसरी सर्विस बोलें, या रेट बोलें।');return;
+      if(fastAnswer===true){this.nextItemField();return;}
+      this.ask('service_fast','WI नहीं है तो दूसरी सर्विस बोलें, नहीं तो रेट बोलें।');return;
     }
     if(state==='service'){
       var service=resolveVoiceService_(text,false);
