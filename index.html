@@ -1680,7 +1680,7 @@
     // Item-only vocabulary: never apply these aliases to customer names or phones.
     function itemQuantityNumberText_(value){
       var groups = [
-        'शून्य|zero|shunya', 'एक|ek|aik', 'दो|do', 'तीन|teen|tin', 'चार|char|chaar|chaarh|फोर|four|for',
+        'शून्य|zero|shunya', 'एक|ek|aik', 'दो|do', 'तीन|teen|tin', 'चार|चार्|char|chaar|chaarh|chhar|chaaru|फोर|four|for',
         'पांच|पाँच|panch|paanch', 'छह|छः|छे|छै|che|chhe|chhah|chah', 'सात|saat|sat', 'आठ|aath|ath', 'नौ|nau',
         'दस|das', 'ग्यारह|ग्यारहा|gyarah|gyara|gyaarah', 'बारह|बारा|barah|bara|baarah', 'तेरह|तेरा|terah|tera', 'चौदह|चौदा|chaudah|chauda',
         'पंद्रह|पन्द्रह|पंदरा|पन्द्रा|pandrah|pandra|pandara', 'सोलह|सोला|solah|sola', 'सत्रह|सतरा|सतरह|satrah|satra', 'अठारह|अठारा|atharah|athara', 'उन्नीस|उनिस|unnees|unnis',
@@ -1702,7 +1702,7 @@
         'पंचानवे|पचानवे|पचानबे|panchanve|pachanve', 'छियानवे|छियानबे|chhiyanve|chiyanve', 'सत्तानवे|सतानवे|sattanve', 'अट्ठानवे|अठानवे|atthanve|athanve', 'निन्यानवे|निन्यानबे|ninyanve'
       ];
       var words={};groups.forEach(function(group,n){group.split('|').forEach(function(word){words[word]=n;});});
-      var text=String(value||'').replace(/[०-९]/g,function(d){return '०१२३४५६७८९'.indexOf(d);});
+      var text=String(value||'').replace(/\bch+a+r+h?\b/gi,'chaar').replace(/[०-९]/g,function(d){return '०१२३४५६७८९'.indexOf(d);});
       text=text.replace(/[A-Za-z\u0900-\u097F]+/g,function(word){var key=word.toLowerCase();return Object.prototype.hasOwnProperty.call(words,key)?String(words[key]):word;});
       text=voiceNumberText_(text);
       text=text.replace(/(?:\b(\d{1,2})\s+)?(?:सौ|sau|hundred)(?=\s|$)(?:\s+(\d{1,2})(?=\s|$))?/gi,function(_,a,b){return String(Number(a||1)*100+Number(b||0));});
@@ -2049,6 +2049,7 @@
       if(typeof guidedVoice_!=='undefined'&&guidedVoice_.active){
         var guidedError=String(message||'Microphone error');
         if(/no[\s-]*speech|कुछ नहीं|नहीं सुना/i.test(guidedError)){guidedVoice_.ask(guidedVoice_.state,guidedVoice_.lastQuestion||'जवाब दोबारा बोलें।');return;}
+        if(/network|busy|timeout|timed out|audio/i.test(guidedError)&&!/permission|denied|not.allowed/i.test(guidedError)){guidedVoice_.retryInput(guidedError);return;}
         guidedVoice_.fail(guidedError);return;
       }
       tokenVoiceContinuous_=false;tokenVoiceEpoch_++;voiceButtons_(false);voiceStatus_(String(message||'Voice stopped.'));
@@ -3002,9 +3003,17 @@
     if(window.speechSynthesis)window.speechSynthesis.cancel();
   },
   stop:function(show){
+    this.autoPaused=false;this.retryCount=0;
     this.active=false;this.epoch++;this.promptId='';this.cancelInput();
     this.el('voiceTokenBtn').classList.remove('recording');this.el('voiceItemsBtn').classList.remove('recording');
     if(show)this.el('guidedQuestion').textContent='बातचीत रुकी। भरी हुई जानकारी सुरक्षित है। जाँचें या फिर शुरू करें।';
+  },
+  retryInput:function(message){
+    if(!this.active)return;
+    if((this.retryCount||0)>=3){this.fail(message+'। फिर शुरू करें दबाएँ।');return;}
+    this.retryCount=(this.retryCount||0)+1;
+    this.cancelInput();var self=this,epoch=this.epoch;
+    this.timer=setTimeout(function(){if(self.active&&self.epoch===epoch)self.ask(self.state,self.lastQuestion||'जवाब दोबारा बोलें।');},1000);
   },
   fail:function(message){this.stop(false);this.el('guidedQuestion').textContent=message+' फिर शुरू करें दबाएँ या manual form भरें।';},
   setAuto:function(box){
@@ -3037,6 +3046,7 @@
   },
   ask:function(state,question){
     if(!this.active)return;
+    if(document.hidden){this.state=state;this.lastQuestion=question;this.autoPaused=true;this.cancelInput();return;}
     this.el('guidedVoicePanel').open=true;
     this.cancelInput();this.itemSpeechBuffer='';this.state=state;this.epoch++;
     this.el('voiceTokenBtn').classList.toggle('recording',/^(phone|lookup|name|date|confirm_entry)$/.test(state)&&this.itemIndex===0);
@@ -3129,6 +3139,7 @@
     recognition.onerror=function(event){
       if(!self.active||self.epoch!==epoch||event.error==='aborted')return;
       if(event.error==='no-speech'){self.recognition=null;self.ask(self.state,self.lastQuestion||'जवाब दोबारा बोलें।');return;}
+      if(/^(network|audio-capture|no-speech)$/.test(event.error)){self.retryInput('Microphone: '+event.error);return;}
       self.fail(event.error==='not-allowed'||event.error==='service-not-allowed'?microphoneHelpMessage_():'Microphone: '+event.error);
     };
     recognition.onend=function(){
@@ -3226,7 +3237,7 @@
   },
   receive:function(answer){
     if(!this.active||!this.listening)return;
-    var text=voiceClean_(answer),self=this;if(!text)return;
+    var text=voiceClean_(answer),self=this;if(!text)return;this.retryCount=0;
     this.cancelInput();this.promptId='';this.el('guidedTranscript').textContent=text;
     if(/^(stop|cancel|रुको|रुकिए|बंद करो|रद्द करो)$/i.test(text)){this.stop(true);return;}
     var state=this.state,rows=this.rows(),result;
@@ -3241,13 +3252,6 @@
       var pending=this.entryPending,accepted=this.yesNo(text);
       if(!pending){this.stop(true);return;}
       // The next field itself implicitly confirms the previous one.
-      if(pending.state==='name'){
-        var chainedDate=voiceDateToIso_(text);
-        if(chainedDate){
-          this.el('tokenCustomerName').value=pending.text;this.entryPending={state:'date',text:text,label:'डिलीवरी तारीख'};
-          this.ask('confirm_entry','डिलीवरी तारीख '+text+'। सही है तो मात्रा और आइटम का नाम बोलें।');return;
-        }
-      }
       if(pending.state==='date'){
         var chainedItems=voiceReadItems_(text),chainedRows=chainedItems.items.filter(function(r){return !voiceIsBlankItem_(r);});
         if(chainedRows.length===1&&chainedRows[0].item&&Number.isInteger(Number(chainedRows[0].qty))&&Number(chainedRows[0].qty)>0&&!chainedItems.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){
@@ -3313,7 +3317,7 @@
       if(!this.validEntry(state,text)){this.entryPending=null;this.el('guidedTranscript').textContent='';this.ask(state,labels[state]+' का सही जवाब दोबारा बोलें। Hindi या English दोनों मान्य हैं।');return;}
       this.entryPending={state:state,text:text,label:labels[state]};
       var confirmationText=state==='phone'?phoneDigitsForSpeech_(voiceReadPhone_(text).value):text;
-      var confirmationQuestion=state==='phone'?'फोन नंबर '+confirmationText+'। नंबर सही है तो हाँ बोलें, नाम सर्च होगा।':state==='name'?'नाम '+confirmationText+'। सही है तो डिलीवरी तारीख बताएं।':'डिलीवरी तारीख '+confirmationText+'। सही है तो मात्रा और आइटम का नाम बोलें।';
+      var confirmationQuestion=state==='phone'?'फोन नंबर '+confirmationText+'। नंबर सही है तो हाँ बोलें।':state==='name'?'नाम '+confirmationText+'। नाम सही है तो हाँ बोलें।':'डिलीवरी तारीख '+confirmationText+'। सही है तो मात्रा और आइटम का नाम बोलें।';
       this.ask('confirm_entry',confirmationQuestion);return;
     }
     this.acceptEntryOnce=false;
@@ -3329,15 +3333,19 @@
       if(!phone.complete){this.phoneBuffer=phone.value.length<10?phone.value:'';this.ask('phone',this.phoneBuffer?'नंबर पूरा नहीं हुआ। बाकी अंक बोलें या पूरा 10 अंकों का नंबर दोहराएँ।':'सही 10 अंकों का फोन नंबर दोबारा बोलें।');return;}
       this.phoneBuffer='';this.el('tokenPhone').value=phone.value;this.el('tokenCustomerName').value='';
       this.state='lookup';this.epoch++;var epoch=this.epoch;
-      this.el('guidedQuestion').textContent='Customer का नाम backend से जाँच रहा है…';
+      this.el('guidedQuestion').textContent='आपका नाम सर्च हो रहा है।';
+      try{
+        if(window.AndroidVoice&&window.AndroidVoice.speakPrompt)window.AndroidVoice.speakPrompt('आपका नाम सर्च हो रहा है।','lookup_'+epoch);
+        else if(window.speechSynthesis){var lookupSpeech=new SpeechSynthesisUtterance('आपका नाम सर्च हो रहा है।');lookupSpeech.lang='hi-IN';window.speechSynthesis.speak(lookupSpeech);}
+      }catch(ignoreSpeechError){}
       this.timer=setTimeout(function(){if(self.active&&self.epoch===epoch)self.fail('Customer lookup में समय लग रहा है। Connection जाँचें।');},20000);
       google.script.run.withSuccessHandler(function(name){
         if(!self.active||self.epoch!==epoch||self.value('tokenPhone')!==phone.value)return;
         if(self.timer){clearTimeout(self.timer);self.timer=null;}
         if(typeof name==='string'&&name.trim()){
-          self.entryPending={state:'name',text:name.trim(),label:'नाम'};self.ask('confirm_entry','नाम '+name.trim()+'। सही है तो डिलीवरी तारीख बताएं।');
+          self.entryPending={state:'name',text:name.trim(),label:'नाम'};self.ask('confirm_entry','आपका नाम '+name.trim()+' है। नाम सही है तो हाँ बोलें।');
         }
-        else self.ask('name','इस नंबर का नाम नहीं मिला। आपका नाम क्या है?');
+        else self.ask('name','आपका नाम नहीं मिला। कृपया अपना नाम बताएं।');
       }).withFailureHandler(function(e){if(self.active&&self.epoch===epoch)self.fail('Customer lookup नहीं हुआ: '+(e.message||e));}).getCustomerByPhone(phone.value,getActiveSessionToken());return;
     }
     if(state==='name'){
@@ -3420,7 +3428,11 @@
 };
 window.onAndroidGuidedPromptDone=function(id){guidedVoice_.promptDone(id);};
 window.onAndroidGuidedPartial=function(text){if(guidedVoice_.active&&guidedVoice_.listening)guidedVoice_.el('guidedTranscript').textContent=String(text||'');};
-document.addEventListener('visibilitychange',function(){if(document.hidden&&guidedVoice_.active)guidedVoice_.stop(true);});
+document.addEventListener('visibilitychange',function(){
+  var g=guidedVoice_;
+  if(document.hidden&&g.active){g.autoPaused=true;if(g.state!=='lookup'){g.epoch++;g.promptId='';g.cancelInput();}}
+  else if(!document.hidden&&g.active&&g.autoPaused){g.autoPaused=false;if(g.state!=='lookup')g.ask(g.state,g.lastQuestion||'जवाब दोबारा बोलें।');}
+});
 </script>
 </body>
 </html>
