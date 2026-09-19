@@ -1,209 +1,683 @@
-"""
-Intent matcher: services (KG, Iron) + wide Hindi/English yes/no detection.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reply matcher – KG, Iron, yes and no</title>
+<style>
+  :root {
+    --paper: #f1f4f6;
+    --tag: #ffffff;
+    --ink: #17212b;
+    --muted: #5b6875;
+    --line: #cfd8df;
+    --stitch: #9db2c2;
+    --denim: #2c5b86;
+    --denim-soft: #e3edf5;
+    --yes: #1f7a5c;
+    --yes-soft: #dff2ea;
+    --no: #b23b31;
+    --no-soft: #f8e4e1;
+    --unsure: #8a6414;
+    --unsure-soft: #f6ecd2;
+    --radius: 10px;
+    --ui: "Segoe UI", system-ui, -apple-system, "Noto Sans", "Noto Sans Devanagari", "Mangal", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Noto Sans Devanagari", monospace;
+  }
+  :root:not([data-theme="light"]) { }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #12181e;
+      --tag: #1a232c;
+      --ink: #e8eef3;
+      --muted: #97a5b2;
+      --line: #2c3945;
+      --stitch: #46607a;
+      --denim: #7fb1de;
+      --denim-soft: #1f3345;
+      --yes: #5fd0a4;
+      --yes-soft: #163529;
+      --no: #f08a80;
+      --no-soft: #3a1f1c;
+      --unsure: #e2b85a;
+      --unsure-soft: #35290f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #12181e; --tag: #1a232c; --ink: #e8eef3; --muted: #97a5b2; --line: #2c3945;
+    --stitch: #46607a; --denim: #7fb1de; --denim-soft: #1f3345; --yes: #5fd0a4; --yes-soft: #163529;
+    --no: #f08a80; --no-soft: #3a1f1c; --unsure: #e2b85a; --unsure-soft: #35290f;
+  }
 
-    detect_services("5 keelo aur press")  -> ["KG", "IRON"]
-    classify_reply("haan ji bilkul")      -> "yes"
-    classify_reply("nahi chahiye")        -> "no"
-    classify_reply("kal aana")            -> "unknown"
+  * { box-sizing: border-box; }
+  html { height: 100%; }
+  body {
+    margin: 0; min-height: 100%;
+    background: var(--paper); color: var(--ink);
+    font-family: var(--ui); font-size: 16px; line-height: 1.5;
+    padding: 24px 16px 64px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; font-weight: 700; }
+  h2 { font-size: 17px; margin: 0 0 10px; font-weight: 650; }
+  p.lede { margin: 0 0 22px; color: var(--muted); max-width: 60ch; }
+  label { font-weight: 600; font-size: 15px; }
 
-Add new variants by editing the alias lists; matching is spelling-tolerant
-(repeated letters collapsed, punctuation ignored, light fuzzy match).
-"""
-import re
-import unicodedata
-from difflib import SequenceMatcher
+  .panel {
+    background: var(--tag); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px;
+  }
+  .input-row { display: flex; gap: 10px; align-items: stretch; margin-top: 8px; }
+  textarea, select {
+    font: inherit; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  }
+  #msg { flex: 1; min-height: 76px; resize: vertical; font-size: 20px; line-height: 1.4; }
+  textarea:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--denim); outline-offset: 2px;
+  }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    color: var(--ink); background: var(--tag);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px;
+  }
+  button:hover { border-color: var(--denim); }
+  button.primary { background: var(--denim); color: #fff; border-color: var(--denim); }
+  :root[data-theme="dark"] button.primary { color: #0d151c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #0d151c; } }
+  button.mic { min-width: 92px; }
+  button.mic[aria-pressed="true"] { background: var(--no-soft); border-color: var(--no); color: var(--no); }
+  .voice { display: flex; flex-direction: column; gap: 8px; }
+  .voice[hidden] { display: none; }
 
-# --------------------------------------------------------------------------
-# ALIAS LISTS  (Roman + Devanagari; add anything your speech-to-text returns)
-# --------------------------------------------------------------------------
-SERVICES = {
-    "KG": [
-        "kg", "kgs", "k g", "k gee", "kay gee", "ke ji", "ke gi", "kaygee",
-        "kilo", "kilos", "keelo", "kiloo", "killo", "kilogram", "kilograms",
-        "kilo gram", "kilogaram", "kiligram", "kilogm", "kelo", "kilo gm",
-        "किलो", "कीलो", "किलोग्राम", "किलो ग्राम", "केजी", "के जी", "के.जी.",
-    ],
-    "IRON": [
-        "iron", "irons", "ironing", "airon", "aairun", "airun", "ayron", "aayron",
-        "iran", "ayarn", "aayarn", "aiyarn", "irun", "iren",
-        "press", "pres", "prass", "presing", "pressing", "prees",
+  .try { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .try span { color: var(--muted); font-size: 14px; margin-right: 2px; }
+  .try button { font-weight: 500; font-size: 14px; padding: 4px 10px; border-radius: 999px; }
+
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+  @media (max-width: 640px) { .results { grid-template-columns: 1fr; } .input-row { flex-direction: column; } }
+
+  .care-tag {
+    position: relative; background: var(--tag);
+    border: 2px dashed var(--stitch); border-radius: 12px;
+    padding: 22px 18px 18px 18px; min-height: 150px;
+  }
+  .care-tag::before {
+    content: ""; position: absolute; top: 9px; left: 50%; width: 10px; height: 10px;
+    margin-left: -5px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--stitch);
+  }
+  .care-tag h2 { margin-top: 4px; color: var(--muted); font-size: 15px; font-weight: 600; }
+
+  #services { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  #services li {
+    background: var(--denim-soft); color: var(--denim); border-radius: 8px;
+    padding: 8px 14px; font-weight: 700; font-size: 22px; line-height: 1.2;
+  }
+  #services li small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+  .empty { color: var(--muted); font-size: 15px; }
+
+  #verdict { font-size: 44px; line-height: 1.1; font-weight: 800; margin: 2px 0 8px; }
+  #verdict.yes { color: var(--yes); }
+  #verdict.no { color: var(--no); }
+  #verdict.unknown { color: var(--unsure); font-size: 30px; padding-top: 8px; }
+  .hits { font-size: 14px; color: var(--muted); margin: 2px 0 0; overflow-wrap: anywhere; }
+  .hits b { color: var(--ink); font-weight: 600; }
+
+  details { margin-top: 22px; }
+  summary { cursor: pointer; font-weight: 650; font-size: 17px; padding: 6px 0; }
+  .lists { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 10px; }
+  @media (max-width: 640px) { .lists { grid-template-columns: 1fr; } }
+  .lists textarea { width: 100%; height: 190px; font-family: var(--mono); font-size: 14px; line-height: 1.45; margin-top: 4px; }
+  .lists small { display: block; color: var(--muted); font-weight: 400; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; align-items: center; }
+  #status { color: var(--muted); font-size: 14px; }
+
+  #testOut { margin-top: 12px; font-size: 15px; }
+  #testOut .pass { color: var(--yes); font-weight: 650; }
+  #testOut .fail { color: var(--no); font-weight: 650; }
+  #testOut ul { margin: 8px 0 0; padding-left: 20px; font-family: var(--mono); font-size: 14px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    #verdict { transition: color .15s ease; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Reply matcher</h1>
+  <p class="lede">Type or say a customer message. See which service it matches (KG, Iron) and whether the reply means yes or no, in Hindi or English.</p>
+
+  <section class="panel" aria-labelledby="msgLabel">
+    <label id="msgLabel" for="msg">Customer message</label>
+    <div class="input-row">
+      <textarea id="msg" rows="2" spellcheck="false" autocomplete="off" placeholder="For example: 5 keelo aur pres kar do"></textarea>
+      <div class="voice" id="voiceBox" hidden>
+        <button type="button" class="mic" id="mic" aria-pressed="false">Speak</button>
+        <select id="lang" aria-label="Speech language">
+          <option value="hi-IN">Hindi</option>
+          <option value="en-IN">English (India)</option>
+        </select>
+      </div>
+    </div>
+    <div class="try" id="examples">
+      <span>Try:</span>
+    </div>
+  </section>
+
+  <div class="results" aria-live="polite">
+    <section class="care-tag" aria-labelledby="svcHead">
+      <h2 id="svcHead">Services found</h2>
+      <ul id="services"></ul>
+    </section>
+    <section class="care-tag" aria-labelledby="repHead">
+      <h2 id="repHead">Reply</h2>
+      <div id="verdict" class="unknown">Not sure</div>
+      <p class="hits" id="yesHits"></p>
+      <p class="hits" id="noHits"></p>
+    </section>
+  </div>
+
+  <details>
+    <summary>Edit word lists</summary>
+    <p class="hits">One word or phrase per line. Add whatever your speech-to-text returns, then choose Apply.</p>
+    <div class="lists" id="lists"></div>
+    <div class="actions">
+      <button type="button" class="primary" id="apply">Apply lists</button>
+      <button type="button" id="reset">Reset to defaults</button>
+      <button type="button" id="copy">Copy lists as JSON</button>
+      <span id="status" role="status"></span>
+    </div>
+  </details>
+
+  <details>
+    <summary>Run self-test</summary>
+    <div class="actions">
+      <button type="button" id="runTest">Run self-test</button>
+    </div>
+    <div id="testOut"></div>
+  </details>
+</div>
+
+<!-- =====================================================================
+     MATCHER  (plain JavaScript, no dependencies)
+     Copy the script block below (id "matcher") into your own project.
+       IntentMatcher.detectServices("5 keelo aur press")  -> ["KG", "IRON"]
+       IntentMatcher.parseServices("2.5 kilo")            -> [{code:"KG", quantity:2.5}]
+       IntentMatcher.classifyReply("haan ji bilkul")      -> "yes" | "no" | "unknown"
+     ===================================================================== -->
+<script id="matcher">
+const IntentMatcher = (function () {
+  "use strict";
+
+  // ---------------------------------------------------------------- word lists
+  const DEFAULTS = {
+    SERVICES: {
+      KG: [
+        "kg", "kgs", "k g", "k gee", "kay gee", "kaygee", "ke ji", "ke gi",
+        "kilo", "kilos", "keelo", "kiloo", "killo", "kelo", "kilo gm",
+        "kilogram", "kilograms", "kilo gram", "kilogaram", "kiligram", "kilogm",
+        "kilo grams", "kilogramme", "kilogrammes", "weight",
+        "किलो", "कीलो", "किलोग्राम", "किलो ग्राम", "केजी", "के जी", "के.जी."
+      ],
+      IRON: [
+        "iron", "irons", "ironing", "ironed", "airon", "aairun", "airun", "ayron",
+        "aayron", "iran", "ayarn", "aayarn", "aiyarn", "irun", "iren", "aion",
+        "press", "pres", "prass", "presing", "pressing", "prees", "pressed",
         "istri", "istiri", "isturi", "ishtri", "ishtiri", "istari", "istree",
-        "आयरन", "आइरन", "आयर्न", "एयरन", "इस्त्री", "इस्तरी", "इस्तिरी",
-        "प्रेस", "प्रेसिंग", "प्रैस",
+        "istry", "ishtree",
+        "आयरन", "आइरन", "आयर्न", "एयरन", "आयरण", "इस्त्री", "इस्तरी", "इस्तिरी",
+        "प्रेस", "प्रेसिंग", "प्रैस"
+      ]
+    },
+    YES: [
+      // Hindi / Hinglish
+      "haan", "han", "haa", "ha", "haan ji", "ji haan", "ji ha", "haan haan", "haanji",
+      "hanji", "haji", "hnji", "hn", "hm haan", "haan bhai", "haan bilkul",
+      "ji", "jee", "ji ji", "ji bilkul", "bilkul ji",
+      "sahi", "sahi hai", "shi", "shi hai", "sahee", "bilkul sahi",
+      "theek", "thik", "theek hai", "thik hai", "theek h", "thik h", "theek hai ji",
+      "bilkul", "zaroor", "zarur", "jaroor", "jarur", "pakka", "pakka hai",
+      "achha", "accha", "acha", "achcha", "chalo", "chalega", "chalta hai",
+      "kar do", "kardo", "karo", "kar dijiye", "kijiye", "kariye", "de do", "dedo",
+      "laga do", "lagao", "bhej do", "manzoor", "manzur", "sahmat", "swikar",
+      "chahiye", "chaiye", "chahie", "mujhe chahiye", "haan chahiye",
+      "ho jayega", "ho jaye", "kar lo", "karlo", "thik rahega", "theek rahega",
+      // English
+      "yes", "yeah", "yea", "yep", "yup", "yah", "ya", "yaa", "yas", "yess",
+      "yes please", "yes sir", "yes mam", "yes maam", "sure", "surely", "of course",
+      "absolutely", "definitely", "certainly", "correct", "right", "thats right",
+      "exactly", "ok", "okay", "okk", "okey", "okie", "k", "kk", "alright",
+      "all right", "fine", "good", "done", "confirm", "confirmed", "agree", "agreed",
+      "go ahead", "proceed", "please do", "do it", "affirmative", "roger", "great",
+      "perfect", "cool", "sounds good", "that works",
+      // sounds
+      "hmm", "hm", "hmm hmm", "mm", "mmm", "mhm", "mm hmm", "uh huh", "uhuh", "aha",
+      "ahaan", "aan", "haaan", "hnn",
+      // Devanagari
+      "हाँ", "हां", "हा", "हाँजी", "हांजी", "हाँ जी", "हां जी", "जी हाँ", "जी हां",
+      "हाँ हाँ", "हां हां", "जी", "जी जी", "सही", "सही है", "बिल्कुल", "बिलकुल",
+      "बिल्कुल सही", "ज़रूर", "जरूर", "पक्का", "पक्का है", "ठीक", "ठीक है",
+      "ठीक है जी", "अच्छा", "चलो", "चलेगा", "चलता है", "कर दो", "करदो", "करो",
+      "कीजिए", "करिये", "दे दो", "लगा दो", "भेज दो", "मंज़ूर", "मंजूर", "सहमत",
+      "यस", "येस", "ओके", "चाहिए", "हम्म", "हम", "अह", "हो जाएगा", "कर लो"
     ],
-}
+    NO: [
+      // Hindi / Hinglish
+      "nahin", "nahi", "nahi hai", "nhi", "nahee", "nai", "nahiin", "nahn", "nahni",
+      "na", "naa", "nako", "mat", "matt", "mat karo", "mat kijiye", "mat karna",
+      "bilkul nahi", "kabhi nahi", "nahi chahiye", "nahi chahie", "nahi chaiye",
+      "nahi karna", "nahi karo", "nahi ji", "ji nahi", "na ji", "ji na",
+      "galat", "galat hai", "ghalat", "rehne do", "rahne do", "rehne de", "rahne de",
+      "chhodo", "chodo", "chhod do", "chod do", "band karo", "ruko", "ruk jao",
+      "rok do", "rukiye", "cancel karo", "radd", "raddh", "inkaar", "inkar", "mana",
+      "mana hai", "nakaro", "zaroorat nahi", "jarurat nahi", "kuch nahi", "nahi bhai",
+      "bas", "bas karo", "bus", "bus karo", "abhi nahi", "theek nahi", "thik nahi",
+      "sahi nahi", "nahi chalega", "nahi hoga", "koi zaroorat nahi",
+      // English
+      "no", "noo", "nope", "nah", "naah", "nay", "no way", "not", "not really",
+      "no thanks", "no thank you", "never", "dont", "don't", "do not", "wrong",
+      "incorrect", "cancel", "stop", "negative", "decline", "refuse", "skip",
+      "not now", "leave it", "forget it", "no need", "nothing",
+      // sounds
+      "nn", "nnn", "uh uh", "hmm mm", "tsk", "tch", "hmm no", "unh unh", "mm mm",
+      // Devanagari
+      "नहीं", "नही", "नहि", "नई", "ना", "नाह", "मत", "मत करो", "मत कीजिए", "मत करना",
+      "बिल्कुल नहीं", "बिलकुल नहीं", "कभी नहीं", "नहीं चाहिए", "नहीं करना",
+      "गलत", "गलत है", "ग़लत", "रहने दो", "रहने दे", "छोड़ो", "छोड़ दो", "छोडो",
+      "बंद करो", "रुको", "रुक जाओ", "रोक दो", "रद्द", "इनकार", "मना", "मना है",
+      "ज़रूरत नहीं", "जरूरत नहीं", "कुछ नहीं", "अभी नहीं", "बस", "बस करो", "नो", "नोप",
+      "सही नहीं", "ठीक नहीं", "नहीं चलेगा"
+    ],
+    // Phrases that contain a negative word but mean YES ("no problem", "kyun nahi").
+    YES_OVERRIDE: [
+      "koi baat nahi", "koi dikkat nahi", "koi problem nahi", "koi pareshani nahi",
+      "koi issue nahi", "no problem", "no worries", "not a problem", "why not",
+      "kyu nahi", "kyun nahi", "kyon nahi", "kiu nahi", "nahi to kya", "na kyu",
+      "कोई बात नहीं", "कोई दिक्कत नहीं", "कोई प्रॉब्लम नहीं", "क्यों नहीं", "क्यूँ नहीं"
+    ],
+    // Ambiguous inside a longer sentence ("kar do na"); they only count in a 1-2 word reply.
+    WEAK_NO: ["na", "naa", "ना", "bas", "bus", "बस", "not", "nothing", "dont", "don't", "skip"],
+    WEAK_YES: ["achha", "accha", "acha", "achcha", "अच्छा", "good", "great", "cool",
+      "fine", "chahiye", "chaiye", "chahie", "चाहिए", "right", "hm", "hmm",
+      "हम", "हम्म", "mm", "mmm", "k", "ha", "haa", "aan", "अह", "ji", "jee",
+      "जी", "karo", "करो", "sure", "done"]
+  };
+  const SHORT_REPLY_MAX_TOKENS = 2;
+  const FUZZY_MIN_LEN = 5;
+  const FUZZY_RATIO = 0.85;
+  const DOT = "\ue000";
 
-YES = [
-    # Hindi / Hinglish
-    "haan", "han", "haa", "ha", "haan ji", "ji haan", "ji ha", "haan haan",
-    "ji", "jee", "ji ji", "sahi", "sahi hai", "bilkul sahi", "theek", "thik",
-    "theek hai", "thik hai", "theek h", "thik h", "bilkul", "zaroor", "zarur",
-    "jaroor", "pakka", "pakka hai", "achha", "accha", "acha", "achcha",
-    "chalo", "chalega", "chalta hai", "kar do", "kardo", "karo", "kar dijiye",
-    "kijiye", "de do", "dedo", "manzoor", "manzur", "sahmat", "shi", "shi hai",
-    "sahee", "haanji", "hanji", "hanji", "haji", "hnji", "hn", "hm haan",
-    "bhej do", "chahiye", "chaiye", "chahie", "lagao", "laga do", "theek h",
-    # English
-    "yes", "yeah", "yea", "yep", "yup", "yah", "ya", "yaa", "yas", "yess",
-    "yes please", "yes sir", "yes mam", "sure", "surely", "of course",
-    "absolutely", "definitely", "certainly", "correct", "right", "thats right",
-    "exactly", "ok", "okay", "okk", "okey", "okie", "k", "kk", "alright",
-    "all right", "fine", "good", "done", "confirm", "confirmed", "agree",
-    "agreed", "go ahead", "proceed", "please do", "do it", "affirmative",
-    "roger", "great", "perfect", "cool",
-    # Sounds
-    "hmm", "hm", "hmm hmm", "mm", "mmm", "mhm", "mm hmm", "uh huh", "uhuh",
-    "aha", "ahaan", "aan", "haaan", "hnn",
-    # Devanagari
-    "हाँ", "हां", "हा", "हाँजी", "हांजी", "हाँ जी", "हां जी", "जी हाँ", "जी हां",
-    "जी", "सही", "सही है", "बिल्कुल", "बिलकुल", "ज़रूर", "जरूर", "पक्का",
-    "ठीक", "ठीक है", "अच्छा", "चलो", "चलेगा", "कर दो", "करो", "कीजिए",
-    "मंज़ूर", "मंजूर", "सहमत", "यस", "येस", "ओके", "ओके", "ठीक है जी",
-    "चाहिए", "हम्म", "हम", "अह",
-]
+  // ---------------------------------------------------------------- normalising
+  function normalize(text, keepDigits) {
+    let t = String(text || "").normalize("NFC").toLowerCase();
+    t = t.replace(/[०-९]/g, function (d) { return String(d.charCodeAt(0) - 0x0966); });
+    t = t.replace(/\u093c/g, "")            // nukta: ज़ -> ज
+         .replace(/\u0901/g, "\u0902")      // chandrabindu: हाँ == हां
+         .replace(/[\u200c\u200d]/g, "");
+    if (keepDigits) t = t.replace(/(\d)\.(?=\d)/g, "$1" + DOT);   // protect 2.5
+    else t = t.replace(/\d+/g, " ");                              // "5kg" -> " kg"
+    t = t.replace(/[\p{P}\p{S}]/gu, " ");                         // punctuation -> space
+    t = t.split(DOT).join(".");
+    return t.replace(/\s+/g, " ").trim();
+  }
+  // collapse repeated letters: haan -> han, keelo -> kelo, yesss -> yes
+  function key(s) { return s.replace(/(.)\1+/gu, "$1"); }
+  function kp(phrase) {
+    const n = normalize(phrase);
+    return n ? n.split(" ").map(key).join(" ") : "";
+  }
+  function compile(list) {
+    const s = new Set();
+    list.forEach(function (a) { const k = kp(a); if (k) s.add(k); });
+    return Array.from(s);
+  }
+  function tokens(text) {
+    const n = normalize(text);
+    return n ? n.split(" ").map(key) : [];
+  }
 
-NO = [
-    # Hindi / Hinglish
-    "nahin", "nahi", "nahi hai", "nhi", "nahee", "nai", "nahiin", "nahn",
-    "na", "naa", "nako", "mat", "mat karo", "mat kijiye", "matt", "bilkul nahi",
-    "kabhi nahi", "nahi chahiye", "nahi chahie", "nahi karna", "nahi karo",
-    "nahi ji", "ji nahi", "na ji", "ji na", "galat", "galat hai", "ghalat",
-    "rehne do", "rahne do", "rehne de", "rahne de", "chhodo", "chodo",
-    "chhod do", "chod do", "band karo", "ruko", "ruk jao", "rok do", "rukiye",
-    "cancel karo", "radd", "raddh", "inkaar", "mana", "mana hai", "nakaro",
-    "zaroorat nahi", "jarurat nahi", "koi nahi", "kuch nahi", "nahi bhai",
-    "bas", "bas karo", "bus", "bus karo", "abhi nahi", "baad me", "baad mein",
-    "theek nahi", "thik nahi", "sahi nahi",
-    # English
-    "no", "noo", "nope", "nah", "naah", "nay", "no way", "not", "not really",
-    "no thanks", "no thank you", "never", "dont", "don't", "do not", "wrong",
-    "incorrect", "cancel", "stop", "negative", "decline", "refuse", "skip",
-    "not now", "leave it", "forget it", "no need", "nothing",
-    # Sounds
-    "nn", "nnn", "uh uh", "uhuh nah", "hmm mm", "tsk", "tch", "hmm no",
-    "unh unh", "mm mm",
-    # Devanagari
-    "नहीं", "नही", "नहि", "नई", "ना", "नाह", "मत", "मत करो", "मत कीजिए",
-    "बिल्कुल नहीं", "बिलकुल नहीं", "कभी नहीं", "नहीं चाहिए", "नहीं करना",
-    "गलत", "गलत है", "ग़लत", "रहने दो", "रहने दे", "छोड़ो", "छोड़ दो", "छोडो",
-    "बंद करो", "रुको", "रुक जाओ", "रोक दो", "रद्द", "इनकार", "मना", "मना है",
-    "ज़रूरत नहीं", "जरूरत नहीं", "अभी नहीं", "बस", "बस करो", "नो", "नोप",
-    "सही नहीं", "ठीक नहीं",
-]
+  // ---------------------------------------------------------------- fuzzy ratio
+  // Same idea as Python's difflib.SequenceMatcher.ratio()
+  function longestCommon(a, alo, ahi, b, blo, bhi) {
+    let bestI = alo, bestJ = blo, bestK = 0;
+    let prev = new Array(bhi - blo + 1).fill(0);
+    for (let i = alo; i < ahi; i++) {
+      const cur = new Array(bhi - blo + 1).fill(0);
+      for (let j = blo; j < bhi; j++) {
+        if (a[i] === b[j]) {
+          const k = prev[j - blo] + 1;
+          cur[j - blo + 1] = k;
+          if (k > bestK) { bestK = k; bestI = i - k + 1; bestJ = j - k + 1; }
+        }
+      }
+      prev = cur;
+    }
+    return [bestI, bestJ, bestK];
+  }
+  function matching(a, alo, ahi, b, blo, bhi) {
+    if (alo >= ahi || blo >= bhi) return 0;
+    const m = longestCommon(a, alo, ahi, b, blo, bhi);
+    if (m[2] === 0) return 0;
+    return m[2] + matching(a, alo, m[0], b, blo, m[1]) +
+           matching(a, m[0] + m[2], ahi, b, m[1] + m[2], bhi);
+  }
+  function ratio(s1, s2) {
+    const a = Array.from(s1), b = Array.from(s2);
+    if (!a.length && !b.length) return 1;
+    return 2 * matching(a, 0, a.length, b, 0, b.length) / (a.length + b.length);
+  }
 
-# Ambiguous when used inside a longer sentence ("kar do na", "acha, kal aana"):
-# they only count if the whole reply is very short.
-WEAK_NO = {"na", "naa", "बस", "bas", "bus", "not", "nothing", "dont", "don't", "ना", "skip"}
-WEAK_YES = {"achha", "accha", "acha", "achcha", "अच्छा", "good", "great", "cool", "fine",
-            "chahiye", "chaiye", "chahie", "चाहिए", "right", "hm", "hmm", "हम", "हम्म",
-            "mm", "mmm", "k", "ha", "haa", "aan", "अह", "ji", "jee", "जी", "karo", "करो",
-            "sure", "done"}
-SHORT_REPLY_MAX_TOKENS = 2
+  // ---------------------------------------------------------------- matching core
+  function hits(toks, compiled, allowJoin) {
+    const padded = " " + toks.join(" ") + " ";
+    const tokset = new Set(toks);
+    const joined = new Set();
+    if (allowJoin) for (let i = 0; i < toks.length - 1; i++) joined.add(toks[i] + toks[i + 1]);
+    const found = new Set();
+    compiled.forEach(function (ak) {
+      if (padded.indexOf(" " + ak + " ") !== -1) { found.add(ak); return; }
+      if (ak.indexOf(" ") !== -1) {
+        if (tokset.has(ak.split(" ").join(""))) found.add(ak);       // "k g" written as "kg"
+        return;
+      }
+      if (allowJoin && Array.from(ak).length >= 3 && joined.has(ak)) { found.add(ak); return; }   // "kilo gram"
+      const alen = Array.from(ak).length;
+      if (alen >= FUZZY_MIN_LEN) {
+        for (let i = 0; i < toks.length; i++) {
+          const tlen = Array.from(toks[i]).length;
+          if (tlen >= FUZZY_MIN_LEN && Math.abs(tlen - alen) <= 2 && ratio(toks[i], ak) >= FUZZY_RATIO) {
+            found.add(ak); break;
+          }
+        }
+      }
+    });
+    return found;
+  }
 
-# --------------------------------------------------------------------------
-# NORMALISATION
-# --------------------------------------------------------------------------
-def normalize(text: str) -> str:
-    t = unicodedata.normalize("NFC", text or "").lower()
-    t = t.replace("\u093c", "")            # nukta: ज़ -> ज
-    t = t.replace("\u0901", "\u0902")      # chandrabindu -> anusvara (हाँ == हां)
-    t = re.sub(r"\d+", " ", t)             # drop digits, "5kg" -> " kg"
-    # replace punctuation/symbols with space (keeps Devanagari matras intact)
-    t = "".join(" " if unicodedata.category(c)[0] in "PS" else c for c in t)
-    return re.sub(r"\s+", " ", t).strip()
+  // ---------------------------------------------------------------- config
+  let cfg, C;
+  function build() {
+    C = { services: {} };
+    Object.keys(cfg.SERVICES).forEach(function (code) { C.services[code] = compile(cfg.SERVICES[code]); });
+    C.yes = compile(cfg.YES);
+    C.no = compile(cfg.NO);
+    C.override = compile(cfg.YES_OVERRIDE);
+    C.weakYes = new Set(compile(cfg.WEAK_YES));
+    C.weakNo = new Set(compile(cfg.WEAK_NO));
+  }
+  function copy(o) { return JSON.parse(JSON.stringify(o)); }
+  function configure(partial) {
+    partial = partial || {};
+    if (partial.SERVICES) Object.keys(partial.SERVICES).forEach(function (c) { cfg.SERVICES[c] = partial.SERVICES[c].slice(); });
+    ["YES", "NO", "YES_OVERRIDE", "WEAK_YES", "WEAK_NO"].forEach(function (k) { if (partial[k]) cfg[k] = partial[k].slice(); });
+    build();
+  }
+  function reset() { cfg = copy(DEFAULTS); build(); }
+  reset();
 
+  // ---------------------------------------------------------------- services
+  function detectServices(text) {
+    const toks = tokens(text);
+    return Object.keys(C.services).filter(function (code) { return hits(toks, C.services[code], true).size > 0; });
+  }
+  function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function quantity(text, code) {
+    const norm = normalize(text, true);
+    const list = cfg.SERVICES[code];
+    for (let i = 0; i < list.length; i++) {
+      const a = normalize(list[i]);
+      if (!a) continue;
+      const pat = a.split(" ").map(escapeRe).join("\\s*");
+      const m = new RegExp("(\\d+(?:\\.\\d+)?)\\s*" + pat + "(?![\\p{L}\\p{M}\\p{N}_])", "u").exec(norm);
+      if (m) return parseFloat(m[1]);
+    }
+    return null;
+  }
+  function parseServices(text) {
+    return detectServices(text).map(function (code) { return { code: code, quantity: quantity(text, code) }; });
+  }
 
-def key(s: str) -> str:
-    """Collapse repeated letters: haan->han, keelo->kelo, yesss->yes."""
-    return re.sub(r"(.)\1+", r"\1", s)
+  // ---------------------------------------------------------------- yes / no
+  function minus(set, weak) { return Array.from(set).filter(function (h) { return !weak.has(h); }); }
+  function classifyReplyDetail(text) {
+    const toks = tokens(text);
+    if (!toks.length) return { label: "unknown", yesHits: [], noHits: [] };
+    const short = toks.length <= SHORT_REPLY_MAX_TOKENS;
 
+    // positive uses of negative words: "koi baat nahi", "no problem"
+    let padded = " " + toks.join(" ") + " ";
+    let override = false;
+    C.override.forEach(function (p) {
+      const needle = " " + p + " ";
+      if (padded.indexOf(needle) !== -1) { override = true; padded = padded.split(needle).join(" "); }
+    });
+    const rest = padded.split(" ").filter(Boolean);
 
-def _prep(text: str):
-    toks = [key(t) for t in normalize(text).split()]
-    return toks, " " + " ".join(toks) + " "
+    const noSet = hits(rest, C.no), yesSet = hits(rest, C.yes);
+    const noOk = short ? Array.from(noSet) : minus(noSet, C.weakNo);
+    const yesOk = short ? Array.from(yesSet) : minus(yesSet, C.weakYes);
+    const out = { yesHits: Array.from(yesSet), noHits: Array.from(noSet) };
 
+    if (noOk.length) out.label = "no";                    // negative wins: "haan nahi" -> no
+    else if (yesOk.length || override) out.label = "yes";
+    else out.label = "unknown";
+    return out;
+  }
+  function classifyReply(text) { return classifyReplyDetail(text).label; }
 
-def _alias_hits(text: str, aliases):
-    """Return the set of aliases (normalized/keyed) found in text."""
-    toks, padded = _prep(text)
-    hits = set()
-    for a in aliases:
-        ak = " ".join(key(w) for w in normalize(a).split())
-        if not ak:
-            continue
-        if f" {ak} " in padded:
-            hits.add(ak)
-            continue
-        # glued spelling: "kilo gram" typed as "kilogram", "k g" typed as "kg"
-        glued = ak.replace(" ", "")
-        if " " in ak and glued in toks:
-            hits.add(ak)
-            continue
-        # light fuzzy match for longer single words (typos / STT errors)
-        if " " not in ak and len(ak) >= 5:
-            for t in toks:
-                if len(t) >= 5 and SequenceMatcher(None, t, ak).ratio() >= 0.85:
-                    hits.add(ak)
-                    break
-    return hits
+  // ---------------------------------------------------------------- self-test
+  const TESTS = {
+    services: [
+      ["5 keelo", ["KG"]], ["2kg", ["KG"]], ["k g", ["KG"]], ["K.G.", ["KG"]],
+      ["kilogram", ["KG"]], ["kilo gram", ["KG"]], ["killo", ["KG"]], ["किलो", ["KG"]],
+      ["केजी", ["KG"]], ["aairun", ["IRON"]], ["AIRON", ["IRON"]], ["pres kar do", ["IRON"]],
+      ["istri", ["IRON"]], ["इस्त्री", ["IRON"]], ["प्रेस", ["IRON"]],
+      ["kilo aur press", ["KG", "IRON"]], ["ironing", ["IRON"]], ["kuch nahi", []],
+      ["environment", []]
+    ],
+    replies: [
+      ["haan", "yes"], ["haaan", "yes"], ["हाँ जी", "yes"], ["हां", "yes"], ["sahi hai", "yes"],
+      ["bilkul", "yes"], ["yeah sure", "yes"], ["mm-hmm", "yes"], ["thik hai", "yes"],
+      ["okk", "yes"], ["जी", "yes"], ["ji haan", "yes"], ["zaroor", "yes"], ["kar do na", "yes"],
+      ["koi baat nahi", "yes"], ["no problem", "yes"], ["kyun nahi", "yes"],
+      ["nahin", "no"], ["nahi", "no"], ["nhi", "no"], ["नहीं चाहिए", "no"], ["nope", "no"],
+      ["rehne do", "no"], ["galat hai", "no"], ["haan nahi", "no"], ["theek nahi hai", "no"],
+      ["uh-uh", "no"], ["na", "no"], ["नो", "no"], ["mat karo", "no"], ["bilkul nahi", "no"],
+      ["kal aana", "unknown"], ["", "unknown"]
+    ],
+    quantities: [["2.5 kilo", 2.5], ["5kg", 5], ["५ किलो", 5], ["10 press", 10]]
+  };
+  function selfTest() {
+    const failed = []; let total = 0;
+    function check(text, got, exp) {
+      total++;
+      if (JSON.stringify(got) !== JSON.stringify(exp)) failed.push({ text: text, got: got, expected: exp });
+    }
+    TESTS.services.forEach(function (t) { check(t[0], detectServices(t[0]), t[1]); });
+    TESTS.replies.forEach(function (t) { check(t[0], classifyReply(t[0]), t[1]); });
+    TESTS.quantities.forEach(function (t) { const m = parseServices(t[0]); check(t[0], m.length ? m[0].quantity : null, t[1]); });
+    return { total: total, passed: total - failed.length, failed: failed };
+  }
 
+  return {
+    detectServices: detectServices, parseServices: parseServices,
+    classifyReply: classifyReply, classifyReplyDetail: classifyReplyDetail,
+    configure: configure, reset: reset, getConfig: function () { return copy(cfg); },
+    selfTest: selfTest, normalize: normalize
+  };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = IntentMatcher;
+</script>
 
-# --------------------------------------------------------------------------
-# PUBLIC API
-# --------------------------------------------------------------------------
-def detect_services(text: str):
-    """Return list of service codes found in the text, e.g. ['KG', 'IRON']."""
-    found = []
-    for code, aliases in SERVICES.items():
-        if _alias_hits(text, aliases):
-            found.append(code)
-    # "k" + "g" spoken as separate letters at the very end etc.
-    if "KG" not in found and re.search(r"\bk\s*\.?\s*g\b", normalize(text)):
-        found.append("KG")
-    return found
+<!-- =====================================================================
+     TESTER UI
+     ===================================================================== -->
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var msg = $("msg");
 
+  // ---- live results
+  function tagLine(el, label, arr) {
+    el.textContent = "";
+    if (!arr.length) return;
+    var b = document.createElement("b");
+    b.textContent = label + " ";
+    el.appendChild(b);
+    el.appendChild(document.createTextNode(arr.join(", ")));
+  }
+  function render() {
+    var text = msg.value;
+    var list = $("services");
+    list.textContent = "";
+    var found = IntentMatcher.parseServices(text);
+    if (!found.length) {
+      var li = document.createElement("li");
+      li.className = "empty";
+      li.style.cssText = "background:none;padding:0;font-size:15px;font-weight:400;color:var(--muted)";
+      li.textContent = text.trim() ? "No service found in this message." : "Type a message to see matches.";
+      list.appendChild(li);
+    } else {
+      found.forEach(function (m) {
+        var li = document.createElement("li");
+        li.textContent = m.code === "KG" ? "KG" : m.code === "IRON" ? "Iron" : m.code;
+        if (m.quantity !== null) {
+          var s = document.createElement("small");
+          s.textContent = "Quantity: " + m.quantity;
+          li.appendChild(s);
+        }
+        list.appendChild(li);
+      });
+    }
+    var r = IntentMatcher.classifyReplyDetail(text);
+    var v = $("verdict");
+    v.className = r.label;
+    v.textContent = r.label === "yes" ? "Yes" : r.label === "no" ? "No" : "Not sure";
+    tagLine($("yesHits"), "Yes words matched:", r.yesHits);
+    tagLine($("noHits"), "No words matched:", r.noHits);
+  }
+  msg.addEventListener("input", render);
 
-def _strong(hits, weak):
-    weak_k = {" ".join(key(w) for w in normalize(x).split()) for x in weak}
-    return {h for h in hits if h not in weak_k}
+  // ---- example chips
+  ["5 keelo aur press", "2.5 kilo istri", "haan ji bilkul", "nahi chahiye", "koi baat nahi",
+   "हाँ जी", "इस्त्री कर दो", "haan nahi"].forEach(function (t) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = t;
+    b.addEventListener("click", function () { msg.value = t; render(); msg.focus(); });
+    $("examples").appendChild(b);
+  });
 
+  // ---- editable lists
+  var LISTS = [
+    { id: "l_KG", label: "KG service words", get: function (c) { return c.SERVICES.KG; }, set: function (o, v) { o.SERVICES = o.SERVICES || {}; o.SERVICES.KG = v; } },
+    { id: "l_IRON", label: "Iron service words", get: function (c) { return c.SERVICES.IRON; }, set: function (o, v) { o.SERVICES = o.SERVICES || {}; o.SERVICES.IRON = v; } },
+    { id: "l_YES", label: "Yes words", get: function (c) { return c.YES; }, set: function (o, v) { o.YES = v; } },
+    { id: "l_NO", label: "No words", get: function (c) { return c.NO; }, set: function (o, v) { o.NO = v; } }
+  ];
+  function buildLists() {
+    var cfg = IntentMatcher.getConfig();
+    var host = $("lists");
+    host.textContent = "";
+    LISTS.forEach(function (L) {
+      var wrap = document.createElement("div");
+      var lab = document.createElement("label");
+      lab.setAttribute("for", L.id);
+      lab.textContent = L.label;
+      var small = document.createElement("small");
+      small.textContent = "One per line";
+      lab.appendChild(small);
+      var ta = document.createElement("textarea");
+      ta.id = L.id; ta.spellcheck = false;
+      ta.value = L.get(cfg).join("\n");
+      wrap.appendChild(lab); wrap.appendChild(ta);
+      host.appendChild(wrap);
+    });
+  }
+  function say(t) {
+    $("status").textContent = t;
+    clearTimeout(say._t);
+    say._t = setTimeout(function () { $("status").textContent = ""; }, 2500);
+  }
+  $("apply").addEventListener("click", function () {
+    var partial = {};
+    LISTS.forEach(function (L) {
+      var items = $(L.id).value.split(/[\n,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+      L.set(partial, items);
+    });
+    IntentMatcher.configure(partial);
+    render();
+    say("Lists applied.");
+  });
+  $("reset").addEventListener("click", function () {
+    IntentMatcher.reset(); buildLists(); render(); say("Lists reset.");
+  });
+  $("copy").addEventListener("click", function () {
+    var json = JSON.stringify(IntentMatcher.getConfig(), null, 2);
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = json; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); say("Copied."); } catch (e) { say("Copy failed."); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(json).then(function () { say("Copied."); }, fallback);
+    } else fallback();
+  });
 
-def classify_reply(text: str) -> str:
-    """Return 'yes', 'no' or 'unknown'. Negative wins if both appear."""
-    toks, _ = _prep(text)
-    if not toks:
-        return "unknown"
-    short = len(toks) <= SHORT_REPLY_MAX_TOKENS
+  // ---- self-test
+  $("runTest").addEventListener("click", function () {
+    var r = IntentMatcher.selfTest();
+    var out = $("testOut");
+    out.textContent = "";
+    var p = document.createElement("div");
+    var s = document.createElement("span");
+    s.className = r.failed.length ? "fail" : "pass";
+    s.textContent = r.failed.length ? (r.failed.length + " failed") : "All passed";
+    p.appendChild(s);
+    p.appendChild(document.createTextNode(" — " + r.passed + " of " + r.total + " checks"));
+    out.appendChild(p);
+    if (r.failed.length) {
+      var ul = document.createElement("ul");
+      r.failed.forEach(function (f) {
+        var li = document.createElement("li");
+        li.textContent = JSON.stringify(f.text) + " gave " + JSON.stringify(f.got) + ", expected " + JSON.stringify(f.expected);
+        ul.appendChild(li);
+      });
+      out.appendChild(ul);
+    }
+  });
 
-    no_hits = _alias_hits(text, NO)
-    yes_hits = _alias_hits(text, YES)
+  // ---- optional voice input (Chrome / Edge / Safari)
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    $("voiceBox").hidden = false;
+    var rec = null, listening = false;
+    var mic = $("mic");
+    function stop() { listening = false; mic.setAttribute("aria-pressed", "false"); mic.textContent = "Speak"; }
+    mic.addEventListener("click", function () {
+      if (listening && rec) { rec.stop(); return; }
+      rec = new SR();
+      rec.lang = $("lang").value;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      rec.onresult = function (e) {
+        var t = "";
+        for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+        msg.value = t; render();
+      };
+      rec.onend = stop;
+      rec.onerror = function () { stop(); say("Could not use the microphone."); };
+      try {
+        rec.start(); listening = true;
+        mic.setAttribute("aria-pressed", "true"); mic.textContent = "Listening";
+      } catch (e) { stop(); }
+    });
+  }
 
-    no_ok = no_hits if short else _strong(no_hits, WEAK_NO)
-    yes_ok = yes_hits if short else _strong(yes_hits, WEAK_YES)
-
-    if no_ok:
-        return "no"          # "haan nahi", "theek nahi hai" -> no
-    if yes_ok:
-        return "yes"
-    return "unknown"
-
-
-if __name__ == "__main__":
-    tests = [
-        ("5 keelo", ["KG"]), ("2kg", ["KG"]), ("k g", ["KG"]), ("kilogram", ["KG"]),
-        ("किलो", ["KG"]), ("aairun", ["IRON"]), ("pres kar do", ["IRON"]),
-        ("istri", ["IRON"]), ("इस्त्री", ["IRON"]), ("kilo aur press", ["KG", "IRON"]),
-    ]
-    for t, exp in tests:
-        got = detect_services(t)
-        print("OK " if got == exp else "BAD", repr(t), got)
-    replies = [
-        ("haan", "yes"), ("हाँ जी", "yes"), ("sahi hai", "yes"), ("bilkul", "yes"),
-        ("yeah sure", "yes"), ("mm-hmm", "yes"), ("thik hai", "yes"), ("okk", "yes"),
-        ("nahin", "no"), ("नहीं चाहिए", "no"), ("nope", "no"), ("rehne do", "no"),
-        ("galat hai", "no"), ("haan nahi", "no"), ("theek nahi hai", "no"),
-        ("uh-uh", "no"), ("na", "no"), ("kar do na", "yes"), ("kal aana", "unknown"),
-    ]
-    for t, exp in replies:
-        got = classify_reply(t)
-        print("OK " if got == exp else "BAD", repr(t), got)
+  buildLists();
+  render();
+})();
+</script>
+</body>
+</html>
