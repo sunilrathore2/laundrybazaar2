@@ -1023,7 +1023,7 @@
       if(!obj.customerName) return alert('Customer Name required.');
       if(!validFormText_(obj.customerName)||items.some(function(it){return !validFormText_(it.item);})||(obj.remark&&!validFormText_(obj.remark)))return alert('नाम, आइटम और रिमार्क में सही Hindi या English text भरें।');
       if(!/^\d{10}$/.test(obj.phone)) return alert('Phone must be exactly 10 digits.');
-      if(!obj.deliveryDate) return alert('Delivery Date required.');
+      
       if(!items.length || items.some(function(it){ return !it.service || !it.item || !Number.isInteger(Number(it.qty)) || Number(it.qty)<=0 || (/^(KG|WF)$/.test(it.service) && !(Number(it.weight)>0)); })) {
         return alert('Enter valid Service, Item and Quantity; enter Weight for KG items.');
       }
@@ -3434,7 +3434,7 @@
       var yes=this.yesNo(text);
       if(yes===true){
         if(this.snapshot()!==this.reviewSnapshot){this.review();return;}
-        this.suppressAutoOnce=true;this.stop(false);this.el('guidedQuestion').textContent='आपका टैग सेव किया जा रहा है।';saveTokenBooking();
+        this.suppressAutoOnce=true;this.stop(false);this.el('guidedQuestion').textContent='आपका टोकन सेव किया जा रहा है।';saveTokenBooking();
       }else if(yes===false){this.stop(false);this.el('guidedQuestion').textContent='Token save नहीं हुआ। Manual form में सुधार करें, फिर Save Token दबाएँ या बातचीत फिर शुरू करें।';}
       else this.ask('review','टोकन सेव करना है? केवल हाँ या नहीं बोलें।');
     }
@@ -3447,6 +3447,56 @@ document.addEventListener('visibilitychange',function(){
   if(document.hidden&&g.active){g.autoPaused=true;if(g.state!=='lookup'){g.epoch++;g.promptId='';g.cancelInput();}}
   else if(!document.hidden&&g.active&&g.autoPaused){g.autoPaused=false;if(g.state!=='lookup')g.ask(g.state,g.lastQuestion||'जवाब दोबारा बोलें।');}
 });
+
+/* Delivery-date voice behavior:
+   - Spoken date is NOT compulsory.
+   - If only a number is spoken, accept it as the day of the current/next applicable month.
+   - If no date is spoken, leave delivery date unchanged/blank and continue.
+*/
+function applySpokenDeliveryDateOptional_(spokenText) {
+  var s = String(spokenText || '').trim();
+  if (!s) return false;
+
+  // Numeric day only: "12", "12 तारीख", "बारह" (common Hindi numbers).
+  var hindiNums = {
+    'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,
+    'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,
+    'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,
+    'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,
+    'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'उनतीस':29,'तीस':30,'इकतीस':31
+  };
+
+  var day = null;
+  var m = s.match(/^\s*(\d{1,2})\s*(?:तारीख|date|दिन)?\s*$/i);
+  if (m) day = parseInt(m[1], 10);
+
+  if (day === null) {
+    var key = s.replace(/\s+/g, '');
+    if (Object.prototype.hasOwnProperty.call(hindiNums, key)) day = hindiNums[key];
+  }
+
+  if (day !== null && day >= 1 && day <= 31) {
+    var now = new Date();
+    var y = now.getFullYear(), mon = now.getMonth();
+    var candidate = new Date(y, mon, day);
+    if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+      candidate = new Date(y, mon + 1, day);
+    }
+    var yyyy = candidate.getFullYear();
+    var mm = String(candidate.getMonth() + 1).padStart(2, '0');
+    var dd = String(candidate.getDate()).padStart(2, '0');
+    var value = yyyy + '-' + mm + '-' + dd;
+
+    var el = document.getElementById('deliveryDate');
+    if (el) {
+      el.value = value;
+      el.dispatchEvent(new Event('change', {bubbles:true}));
+      return true;
+    }
+  }
+  return false;
+}
+
 </script>
 </body>
 </html>
