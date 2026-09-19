@@ -1030,7 +1030,7 @@
 
       try{obj.requestId=bookingRequestId_('token',obj);}catch(e){alert(e.message);return;}
       document.getElementById('saveTokenBtn').disabled = true;
-      var savingMessage='आपका टैग सेव किया जा रहा है।';
+      var savingMessage='आपका टोकन सेव किया जा रहा है।';
       document.getElementById('voiceTokenStatus').textContent=savingMessage;
       if(typeof guidedVoice_!=='undefined')guidedVoice_.el('guidedQuestion').textContent=savingMessage;
       // Announce only after validation, without letting speech errors block saving.
@@ -1384,8 +1384,8 @@
         WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','horse iron','hosh iron','horsh iron','hoss iron','vo siran','vosiran','vosh iron','washiran','wash aayaran','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
         WF:['wf','double u f','dablu ef','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','foald','foled','folding','old','bold','hold','cold','gold','told','sold','world','wass fold','vass fold','baas fold','wos fold','vos fold','bosh fold','wash old','wass old','vass bold','baas hold','wos cold','waash fold','वॉश फोल्ड','वाश फोल्ड','वास फोल्ड','फोल्ड','ओल्ड','बोल्ड','होल्ड','कोल्ड','गोल्ड','किलो वॉश फोल्ड'],
         DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
-        IR:['ir','i r','eye are','iron','airon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','pressh','presh','prash','pris','priss','prez','pires','pirees','peeres','peres','pares','paress','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','प्रेश','परेस','परेश','पिरेस','पीरेस','परिस','प्रिस','प्रीस','इस्त्री','खाली प्रेस'],
-        KG:['kg','k g','kgs','keygee','kaygee','ke g','ki ji','kee jee','keji','kiji','kilo','kilos','kiloes','kelo','keelo','killo','kilogram','kilogramme','kilo gram','keelo gram','kay gee','key gee','केजी','के जी','के जि','कीजी','की जी','कि जी','किजी','किलो','किलों','कीलो','किल्लो','किलो ग्राम','किलोग्राम'],
+        IR:['ir','i r','eye are','iron','airon','aairun','aairon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','pressh','presh','prash','pris','priss','prez','pires','pirees','peeres','peres','pares','paress','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','प्रेश','परेस','परेश','पिरेस','पीरेस','परिस','प्रिस','प्रीस','इस्त्री','खाली प्रेस'],
+        KG:['kg','k g','kgs','keygee','kaygee','ke g','ki ji','kee jee','keji','kiji','kilo','kilos','kiloes','keelos','keeloo','kelo','keelo','killo','kilogram','kilogramme','kilo gram','keelo gram','keelos gram','kay gee','key gee','केजी','के जी','के जि','कीजी','की जी','कि जी','किजी','किलो','किलों','कीलो','किल्लो','किलो ग्राम','किलोग्राम'],
         SH:['sh','shoe','shoes','shoo','shoos','shu','shuz','soo','su','shoe clean','shoe cleaning','sooj','sooz','joota','joote','jute','jutee','जूता','जूते','जूती','जुता','जुते','जोता','जोते','शू','शूज','शूज़','सू','सूज']
       };
       var input=String(heard||'').replace(/\b(?:service|please|karna|karo|hai|ki|ka|ke)\b|(?:सर्विस|सेवा|करना|करो|है|की|का|के)/gi,' ').replace(/\s+/g,' ').trim();
@@ -1420,7 +1420,7 @@
       if(quickCode)return quickCode;
       var compact=(original+' '+cleaned).replace(/\s+/g,'');
       if(/^(?:kg)+$/i.test(compact)||/^(?:केजी|कीजी|किजी)+$/.test(compact))return 'KG';
-      var hasKg=/(?:\bk\s*\.?\s*g\b|\bkgs?\b|\b(?:kilo|kelo|keelo|killo)(?:e?s|\s*gram(?:me)?s?)?\b|\b(?:ke|ki|kee)\s*(?:g|ji|jee)\b|\b(?:kay|key)\s*gee\b|के\s*(?:जी|जि)|की\s*जी|कि\s*जी|केजी|कीजी|किजी|किलो|किलों|कीलो|किल्लो|किलो\s*ग्राम|किलोग्राम)/i.test(original+' '+cleaned);
+      var hasKg=/(?:\bk\s*\.?\s*g\b|\bkgs?\b|\b(?:kilo|kilos|kelo|keelo|keelos|keeloo|killo)(?:e?s|\s*gram(?:me)?s?)?\b|\b(?:ke|ki|kee)\s*(?:g|ji|jee)\b|\b(?:kay|key)\s*gee\b|के\s*(?:जी|जि)|की\s*जी|कि\s*जी|केजी|कीजी|किजी|किलो|किलों|कीलो|किल्लो|किलो\s*ग्राम|किलोग्राम)/i.test(original+' '+cleaned);
       var hasFold=/(?:\bwf\b|\b(?:fold|foald|foled|old|bold|hold|cold|gold|told|sold|world)(?:ing)?\b|फोल्ड|फोल्डिंग|ओल्ड|बोल्ड|होल्ड|कोल्ड|गोल्ड)/i.test(original+' '+cleaned);
       if(/(?:\bsh\b|shoe|shoes|shoo|shoos|shu|shuz|sooj|sooz|joota|joote|jutee?|जूता|जूते|जूती|जुता|जुते|जोता|जोते|शू|शूज|शूज़|सूज)/i.test(original+' '+cleaned))return 'SH';
       if(hasFold)return 'WF'; // WF is the weight-based Wash & Fold service.
