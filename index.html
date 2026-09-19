@@ -1023,7 +1023,10 @@
       if(!obj.customerName) return alert('Customer Name required.');
       if(!validFormText_(obj.customerName)||items.some(function(it){return !validFormText_(it.item);})||(obj.remark&&!validFormText_(obj.remark)))return alert('नाम, आइटम और रिमार्क में सही Hindi या English text भरें।');
       if(!/^\d{10}$/.test(obj.phone)) return alert('Phone must be exactly 10 digits.');
-      
+      if(!obj.deliveryDate) return alert('Delivery Date required.');
+      var todayForDelivery=new Date();
+      var todayDeliveryIso=todayForDelivery.getFullYear()+'-'+String(todayForDelivery.getMonth()+1).padStart(2,'0')+'-'+String(todayForDelivery.getDate()).padStart(2,'0');
+      if(obj.deliveryDate<todayDeliveryIso) return alert('Delivery Date cannot be before today.');
       if(!items.length || items.some(function(it){ return !it.service || !it.item || !Number.isInteger(Number(it.qty)) || Number(it.qty)<=0 || (/^(KG|WF)$/.test(it.service) && !(Number(it.weight)>0)); })) {
         return alert('Enter valid Service, Item and Quantity; enter Weight for KG items.');
       }
@@ -1559,7 +1562,7 @@
       var singles={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9};
       var tens={twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
       text=text.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[ -]+(one|two|three|four|five|six|seven|eight|nine)\b/gi,function(_,t,s){return String(tens[t.toLowerCase()]+singles[s.toLowerCase()]);});
-      var words={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,ek:1,do:2,teen:3,char:4,chaar:4,panch:5,paanch:5,chhe:6,che:6,saat:7,aath:8,nau:9,das:10,'शून्य':0,'जीरो':0,'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'अट्ठाइस':28,'उनतीस':29,'तीस':30,'इकतीस':31};
+      var words={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,ek:1,do:2,teen:3,char:4,chaar:4,chaarr:4,chaarh:4,panch:5,paanch:5,chhe:6,che:6,saat:7,aath:8,nau:9,das:10,'शून्य':0,'जीरो':0,'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'अट्ठाइस':28,'उनतीस':29,'तीस':30,'इकतीस':31};
       text=text.replace(/[A-Za-z\u0900-\u097F]+/g,function(w){return Object.prototype.hasOwnProperty.call(words,w.toLowerCase())?String(words[w.toLowerCase()]):w;});
       text=text.replace(/\b2\s+(?:thousand|hazar|हजार|हज़ार)\s+(\d{1,2})\b/gi,function(_,n){return String(2000+Number(n));});
       text=text.replace(/(\d+)\s*(?:point|decimal|पॉइंट|प्वाइंट|दशमलव)\s*(\d+)(?:\s+(\d)(?=\s*(?:kg|किलो|केजी)))?/gi,function(_,a,b,c){return a+'.'+b+(c||'');});
@@ -1583,8 +1586,7 @@
       }
       else if((match=text.match(/^\s*(\d{1,2})(?:st|nd|rd|th)?\s*(?:तारीख़?|तारिख|tarikh|tareekh|date)(?=\s|$|[,;।])/i)) || (match=text.match(/^\s*(\d{1,2})(?:st|nd|rd|th)?(?=\s*(?:$|[,;।]|को|है|ko\b|hai\b))/i))){
         day=Number(match[1]);month=today.getMonth()+1;year=today.getFullYear();end=match[0].length;
-        var lastDay=new Date(year,month,0).getDate();
-        if(today.getDate()>lastDay-7 && day<today.getDate()){
+        if(day<today.getDate()){
           month++;if(month>12){month=1;year++;}
         }
       }
@@ -1592,8 +1594,10 @@
       if(year<100)year+=2000;
       var checked=new Date(year,month-1,day);
       var valid=year>=2000 && year<=2199 && checked.getFullYear()===year && checked.getMonth()===month-1 && checked.getDate()===day;
+      var todayOnly=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+      if(valid && checked<todayOnly)valid=false;
       var rest=text.slice(end).replace(/^\s*(?:(?:को|की|है|हैं|देना|देनी|देनी है|करना|चाहिए|रखना|रखो|करो|डिलीवरी|डिलिवरी|ko|ki|hai|dena|deni|karna|rakhna|delivery)(?=\s|$|[,;।])\s*)+/i,'');
-      return {value:valid?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'',rest:rest,consumed:true,error:valid?'':'Invalid delivery date. Please correct it.'};
+      return {value:valid?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'',rest:rest,consumed:true,error:valid?'':'Delivery date cannot be before today. Please correct it.'};
     }
 
     function voiceDateToIso_(text){return voiceReadDate_(String(text||'').replace(/^\s*(?:delivery\s*(?:date)?|डिलीवरी\s*(?:डेट|तारीख)?|date|तारीख)\s*[:\-]?\s*/i,'')).value;}
@@ -1728,7 +1732,7 @@
     function voiceReadItems_(input){
       // STT may join quantity and item, e.g. 4shart or ४शर्ट.
       input=voiceUnicodeText_(input).replace(/([0-9०-९])(?=[A-Za-z\u0900-\u097F])/g,'$1 ')
-        .replace(/^(चार|chaar|char|four)\s*[,،:;-]?\s*(?=शर्ट|सर्ट|shirts?\b|shart\b|shert\b|sart\b)/i,'4 ');
+        .replace(/^(चार|ch+a+r+h?|four)\s*[,،:;-]?\s*(?=शर्ट|सर्ट|shirts?\b|shart\b|shert\b|sart\b)/i,'4 ');
 
       // Normalize the service before splitting "and": wash AND iron stays one service.
       var text=voiceNumberText_(normalizeVoiceAliases_(itemQuantityNumberText_(input))).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ').trim();
@@ -3360,7 +3364,9 @@
         if(!self.active||self.epoch!==epoch||self.value('tokenPhone')!==phone.value)return;
         if(self.timer){clearTimeout(self.timer);self.timer=null;}
         if(typeof name==='string'&&name.trim()){
-          self.entryPending={state:'name',text:name.trim(),label:'नाम'};self.ask('confirm_entry','आपका नाम '+name.trim()+' है। नाम सही है तो हाँ बोलें।');
+          self.entryPending=null;
+          self.el('tokenCustomerName').value=name.trim();
+          self.ask('date','डिलीवरी कब चाहिए? तारीख बोलें।');
         }
         else self.ask('name','आपका नाम नहीं मिला। कृपया अपना नाम बताएं।');
       }).withFailureHandler(function(e){if(self.active&&self.epoch===epoch)self.fail('Customer lookup नहीं हुआ: '+(e.message||e));}).getCustomerByPhone(phone.value,getActiveSessionToken());return;
@@ -3434,7 +3440,7 @@
       var yes=this.yesNo(text);
       if(yes===true){
         if(this.snapshot()!==this.reviewSnapshot){this.review();return;}
-        this.suppressAutoOnce=true;this.stop(false);this.el('guidedQuestion').textContent='आपका टोकन सेव किया जा रहा है।';saveTokenBooking();
+        this.suppressAutoOnce=true;this.stop(false);this.el('guidedQuestion').textContent='आपका टैग सेव किया जा रहा है।';saveTokenBooking();
       }else if(yes===false){this.stop(false);this.el('guidedQuestion').textContent='Token save नहीं हुआ। Manual form में सुधार करें, फिर Save Token दबाएँ या बातचीत फिर शुरू करें।';}
       else this.ask('review','टोकन सेव करना है? केवल हाँ या नहीं बोलें।');
     }
@@ -3447,56 +3453,6 @@ document.addEventListener('visibilitychange',function(){
   if(document.hidden&&g.active){g.autoPaused=true;if(g.state!=='lookup'){g.epoch++;g.promptId='';g.cancelInput();}}
   else if(!document.hidden&&g.active&&g.autoPaused){g.autoPaused=false;if(g.state!=='lookup')g.ask(g.state,g.lastQuestion||'जवाब दोबारा बोलें।');}
 });
-
-/* Delivery-date voice behavior:
-   - Spoken date is NOT compulsory.
-   - If only a number is spoken, accept it as the day of the current/next applicable month.
-   - If no date is spoken, leave delivery date unchanged/blank and continue.
-*/
-function applySpokenDeliveryDateOptional_(spokenText) {
-  var s = String(spokenText || '').trim();
-  if (!s) return false;
-
-  // Numeric day only: "12", "12 तारीख", "बारह" (common Hindi numbers).
-  var hindiNums = {
-    'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,
-    'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,
-    'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,
-    'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,
-    'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'उनतीस':29,'तीस':30,'इकतीस':31
-  };
-
-  var day = null;
-  var m = s.match(/^\s*(\d{1,2})\s*(?:तारीख|date|दिन)?\s*$/i);
-  if (m) day = parseInt(m[1], 10);
-
-  if (day === null) {
-    var key = s.replace(/\s+/g, '');
-    if (Object.prototype.hasOwnProperty.call(hindiNums, key)) day = hindiNums[key];
-  }
-
-  if (day !== null && day >= 1 && day <= 31) {
-    var now = new Date();
-    var y = now.getFullYear(), mon = now.getMonth();
-    var candidate = new Date(y, mon, day);
-    if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-      candidate = new Date(y, mon + 1, day);
-    }
-    var yyyy = candidate.getFullYear();
-    var mm = String(candidate.getMonth() + 1).padStart(2, '0');
-    var dd = String(candidate.getDate()).padStart(2, '0');
-    var value = yyyy + '-' + mm + '-' + dd;
-
-    var el = document.getElementById('deliveryDate');
-    if (el) {
-      el.value = value;
-      el.dispatchEvent(new Event('change', {bubbles:true}));
-      return true;
-    }
-  }
-  return false;
-}
-
 </script>
 </body>
 </html>
