@@ -1030,6 +1030,19 @@
 
       try{obj.requestId=bookingRequestId_('token',obj);}catch(e){alert(e.message);return;}
       document.getElementById('saveTokenBtn').disabled = true;
+      var savingMessage='आपका टैग सेव किया जा रहा है।';
+      document.getElementById('voiceTokenStatus').textContent=savingMessage;
+      if(typeof guidedVoice_!=='undefined')guidedVoice_.el('guidedQuestion').textContent=savingMessage;
+      // Announce only after validation, without letting speech errors block saving.
+      try{
+        if(window.AndroidVoice&&typeof window.AndroidVoice.speakPrompt==='function'){
+          window.AndroidVoice.speakPrompt(savingMessage,'saving_'+Date.now());
+        }else if(window.speechSynthesis&&typeof SpeechSynthesisUtterance!=='undefined'){
+          window.speechSynthesis.cancel();
+          var savingSpeech=new SpeechSynthesisUtterance(savingMessage);savingSpeech.lang='hi-IN';
+          window.speechSynthesis.speak(savingSpeech);
+        }
+      }catch(speechError){}
       google.script.run
         .withSuccessHandler(function(n){
           clearBookingRequest_('token');
@@ -3138,6 +3151,8 @@
     if(/(?:^|\s)(?:nhi|nahee|nai|naah|नहि|rehne do|rahne do|रहने दो|छोड़ो|छोडो|रुको|ruko|incorrect)(?:\s|$)/.test(s))return false;
     // Any clear negative intent wins, even when action words follow it.
     if(/(?:^|\s)(?:नहीं|नही|ना|मत|गलत|रद्द|no|nope|nah|nahi|nahin|not|don't|dont|wrong|cancel|reject|negative)(?:\s|$)/.test(s))return false;
+    // Short affirmative sounds requested for confirmation; negatives above win.
+    if(/^(?:hm+|hu+n|hao|hanji|haanji|हनजी|हांजी|हम्म|हूं|हूँ|हाओ)(?:\s+(?:ji|jee|जी|please|प्लीज))?$/.test(s))return true;
     // Accept natural affirmative sentences, not only one exact word.
     if(/(?:^|\s)(?:हाँ|हां|हा|हाँजी|हांजी|हाजी|जी हाँ|जी हां|हूँ|हूं|haan|haa|han|ha|hanji|yes|yeah|yep|yup|sure|correct|affirmative|positive)(?:\s|$)/.test(s))return true;
     if(/^(?:जी|ओके|ओकेय|ठीक|ठीक है|ठीक है जी|बिल्कुल|बिल्कुल सही|सही|सही है|सही है जी|करो|कर दो|कर दीजिए|कर दें|हो गया|चलो|आगे|अगला|जारी रखो|जोड़ो|जोडो|और जोड़ो|और जोडो|ok+|okay|okey|theek|theek hai|thik|thik hai|bilkul|bilkul sahi|sahi|sahi hai|right|fine|good|done right|go ahead|proceed|continue|next|confirm|confirmed|do it|kar do|kardo|jodo|aur jodo|add|add it|add more|save|save it|save token)(?:\s+(?:जी|please|प्लीज))?$/.test(s))return true;
@@ -3391,7 +3406,7 @@
       var yes=this.yesNo(text);
       if(yes===true){
         if(this.snapshot()!==this.reviewSnapshot){this.review();return;}
-        this.suppressAutoOnce=true;this.stop(false);this.el('guidedQuestion').textContent='आपकी पुष्टि मिली। Token backend में save किया जा रहा है…';saveTokenBooking();
+        this.suppressAutoOnce=true;this.stop(false);this.el('guidedQuestion').textContent='आपका टैग सेव किया जा रहा है।';saveTokenBooking();
       }else if(yes===false){this.stop(false);this.el('guidedQuestion').textContent='Token save नहीं हुआ। Manual form में सुधार करें, फिर Save Token दबाएँ या बातचीत फिर शुरू करें।';}
       else this.ask('review','टोकन सेव करना है? केवल हाँ या नहीं बोलें।');
     }
