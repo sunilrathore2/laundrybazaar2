@@ -1663,13 +1663,29 @@
       return Number.isFinite(value)&&value>=0&&value<=100000?value:null;
     }
 
+    // Dedicated weight answer parser: grams are not item quantities or rates.
+    function guidedWeightKg_(input){
+      var t=normalizeVoiceAliases_(itemQuantityNumberText_(voiceUnicodeText_(input))).toLowerCase()
+        .replace(/^(?:(?:कुल|वजन|वज़न|वेट|weight|total|वजन है)\s*[:=\-]?\s*)+/i,'')
+        .replace(/\s*(?:है|हैं|hai|hain|हुआ|होगा)\s*[.!।]?$/i,'').trim()
+        .replace(/[।!]$/,'').trim()
+        .replace(/\b(?:grams?|grammes?|gms?|grm|g)\b|ग्रैम|ग्राम्स|ग्राम|ग्रामस/gi,'g')
+        .replace(/\s+(?:और|and|aur)\s+/gi,' ');
+      var m=t.match(/^(\d+(?:\.\d+)?)\s*kg(?:\s*(\d+(?:\.\d+)?)\s*g)?\.?$/i),kg;
+      if(m)kg=Number(m[1])+Number(m[2]||0)/1000;
+      else if((m=t.match(/^(\d+(?:\.\d+)?)\s*g\.?$/i)))kg=Number(m[1])/1000;
+      else if(/^\d+(?:\.\d+)?$/.test(t))kg=Number(t);
+      else return null;
+      return Number.isFinite(kg)&&kg>0?Math.round(kg*1000000)/1000000:null;
+    }
+
     function bestGuidedSpeechAlternative_(state,result){
       if(!result||!result.length)return '';
       var best='',bestConfidence=-1;
       for(var i=0;i<result.length;i++){
         var transcript=String(result[i].transcript||'').trim();
         if(!transcript)continue;
-        var valid=(state==='service'||state==='service_fast')?(!!resolveVoiceService_(transcript,false)||guidedRateValue_(transcript)!==null):state==='rate'?guidedRateValue_(transcript)!==null:state==='item'?(function(){var parsed=voiceReadItems_(transcript);return parsed.items.length===1&&parsed.items[0].item&&Number.isInteger(Number(parsed.items[0].qty))&&Number(parsed.items[0].qty)>0&&!/^\d+$/.test(parsed.items[0].item)&&!parsed.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);});})():true;
+        var valid=(state==='service'||state==='service_fast')?(!!resolveVoiceService_(transcript,false)||guidedRateValue_(transcript)!==null):state==='rate'?guidedRateValue_(transcript)!==null:state==='weight'?guidedWeightKg_(transcript)!==null:state==='item'?(function(){var parsed=voiceReadItems_(transcript);return parsed.items.length===1&&parsed.items[0].item&&Number.isInteger(Number(parsed.items[0].qty))&&Number(parsed.items[0].qty)>0&&!/^\d+$/.test(parsed.items[0].item)&&!parsed.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);});})():true;
         var confidence=Number(result[i].confidence||0);
         if(valid&&(best===''||confidence>bestConfidence)){best=transcript;bestConfidence=confidence;}
       }
@@ -3126,7 +3142,7 @@
         var bestItemValid=bestItemParsed.items.length===1&&bestItemParsed.items[0].item&&Number.isInteger(Number(bestItemParsed.items[0].qty))&&Number(bestItemParsed.items[0].qty)>0;
         self.queueItemSpeech(bestItemValid?bestItem:(itemChunk||text),900);return;
       }
-      if(last.isFinal&&/^(service|service_fast|rate)$/.test(self.state))text=bestGuidedSpeechAlternative_(self.state,last);
+      if(last.isFinal&&/^(service|service_fast|rate|weight)$/.test(self.state))text=bestGuidedSpeechAlternative_(self.state,last);
       if(last.isFinal&&/^(confirm_entry|item_name_confirm|service_confirm|row_confirm|more|review)$/.test(self.state)){
         for(var alternativeIndex=0;alternativeIndex<last.length;alternativeIndex++){
           var quickAnswer=String(last[alternativeIndex].transcript||'').trim();
@@ -3187,7 +3203,7 @@
     if(state==='remark')return this.yesNo(text)===false||validFormText_(text);
     if(state==='rate'){var price=readVoiceRate_(text);return price.rate!==null&&!price.rest;}
     if(state==='service')return !!resolveVoiceService_(text,false)||this.validEntry('weight',text);
-    if(state==='weight'){var t=voiceNumberText_(text).replace(/^(?:वजन|वज़न|weight)\s*/i,'');if(/^\d+(?:\.\d+)?$/.test(t))t+=' kg';var w=voiceReadItems_('1 Weight '+t);return w.items.length===1&&w.items[0].weight>0&&!w.issues.length;}
+    if(state==='weight')return guidedWeightKg_(text)!==null;
     if(state==='item'){var r=voiceReadItems_(text);return r.items.length>0&&r.items.every(function(it){return Number.isInteger(it.qty)&&it.qty>0&&validFormText_(it.item);})&&!r.issues.some(function(x){return !/^(Select the service|Weight is required)/.test(x);});}
     return true;
   },
@@ -3390,13 +3406,10 @@
       this.render(rows);this.nextItemField();return;
     }
     if(state==='weight'){
-      var weightText=voiceNumberText_(text).replace(/^(?:वजन|वज़न|weight)\s*/i,'');
-      if(/^\d+(?:\.\d+)?$/.test(weightText))weightText+=' kg';
-      result=voiceReadItems_('1 Weight '+weightText);
-      if(result.items.length!==1||!(result.items[0].weight>0)||result.issues.length){this.ask('weight','वजन दोबारा बोलें।');return;}
+      var parsedWeight=guidedWeightKg_(text);
+      if(parsedWeight===null){this.ask('weight','वजन समझ नहीं आया। जैसे आठ सौ ग्राम या एक किलो बोलें।');return;}
       if(!rows[this.itemIndex]){this.ask('item','कपड़े की quantity और नाम दोबारा बोलें।');return;}
-      rows[this.itemIndex].weight=result.items[0].weight;
-      if(/^(WF|KG WF)$/.test(String(result.items[0].service).toUpperCase()))rows[this.itemIndex].service=result.items[0].service;
+      rows[this.itemIndex].weight=parsedWeight;
       this.render(rows);this.nextItemField();return;
     }
     if(state==='more'){
