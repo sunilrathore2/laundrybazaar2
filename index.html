@@ -2999,8 +2999,8 @@
 
     // Expand service codes only for speech; keep stored values and visible prompts intact.
     function tokenPromptForSpeech_(text) {
-      var names = { WI: 'वॉश आयरन', IR: 'आयरन', SH: 'शू क्लीनिंग' };
-      return String(text || '').replace(/\b(?:WI|IR|SH)\b/g, function(code) {
+      var names = { WI: 'वॉश आयरन', IR: 'आयरन', SH: 'शू क्लीनिंग', WF: 'वॉश एंड फोल्ड' };
+      return String(text || '').replace(/\b(?:WI|IR|SH|WF)\b/g, function(code) {
         return names[code];
       });
     }
@@ -3168,8 +3168,9 @@
     this.cancelInput();this.promptId='';this.listening=true;this.receive(answer);
   },
   isStopAnswer:function(text){
-    var s=voiceClean_(String(text).toLowerCase()).replace(/[.!?,।]+/g,' ').replace(/\s+/g,' ').trim();
-    return /^(?:(?:बस|बस्स|बास|bus+|bas+|buzz)(?:\s+(?:बस|बस्स|बास|bus+|bas+|buzz))*|बस करो|बस हो गया|बास करो|bus karo|bas karo|enough|done|finish|finished|no more|नहीं और)(?:\s+(?:जी|please|प्लीज))?$/.test(s);
+    var s=voiceClean_(voiceUnicodeText_(text).toLowerCase()).replace(/[.!?,।]+/g,' ').replace(/\s+/g,' ').trim();
+    // Match complete finish replies, not words inside an item or a refusal.
+    return /^(?:(?:(?:ab|अब)\s+)?(?:b[au]+s+|buzz|बस+|बास+|बस्स)(?:\s+(?:b[au]+s+|buzz|बस+|बास+|बस्स))*(?:\s+(?:karo|kar do|ho gaya|hogaya|kar diya|इतना ही|इतने ही|करो|कर दो|हो गया|कर दिया))?|enough|done|finish|finished|no more|नहीं और|और नहीं|aur nahi|aur nahin|इतना ही|इतने ही)(?:\s+(?:जी|ji|jee|please|प्लीज))?$/.test(s);
   },
   yesNo:function(text){
     var s=voiceClean_(voiceUnicodeText_(text).toLowerCase()).replace(/[.!?,।]+/g,' ').replace(/\s+/g,' ').trim();
