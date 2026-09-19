@@ -1669,7 +1669,7 @@
       for(var i=0;i<result.length;i++){
         var transcript=String(result[i].transcript||'').trim();
         if(!transcript)continue;
-        var valid=(state==='service'||state==='service_fast')?(!!resolveVoiceService_(transcript,false)||guidedRateValue_(transcript)!==null):state==='rate'?guidedRateValue_(transcript)!==null:state==='item'?(function(){var parsed=voiceReadItems_(transcript);return parsed.items.length===1&&parsed.items[0].item&&Number.isInteger(Number(parsed.items[0].qty))&&Number(parsed.items[0].qty)>0;})():true;
+        var valid=(state==='service'||state==='service_fast')?(!!resolveVoiceService_(transcript,false)||guidedRateValue_(transcript)!==null):state==='rate'?guidedRateValue_(transcript)!==null:state==='item'?(function(){var parsed=voiceReadItems_(transcript);return parsed.items.length===1&&parsed.items[0].item&&Number.isInteger(Number(parsed.items[0].qty))&&Number(parsed.items[0].qty)>0&&!/^\d+$/.test(parsed.items[0].item)&&!parsed.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);});})():true;
         var confidence=Number(result[i].confidence||0);
         if(valid&&(best===''||confidence>bestConfidence)){best=transcript;bestConfidence=confidence;}
       }
@@ -1710,6 +1710,10 @@
     }
 
     function voiceReadItems_(input){
+      // STT may join quantity and item, e.g. 4shart or ४शर्ट.
+      input=voiceUnicodeText_(input).replace(/([0-9०-९])(?=[A-Za-z\u0900-\u097F])/g,'$1 ')
+        .replace(/^(चार|chaar|char|four)\s*[,،:;-]?\s*(?=शर्ट|सर्ट|shirts?\b|shart\b|shert\b|sart\b)/i,'4 ');
+
       // Normalize the service before splitting "and": wash AND iron stays one service.
       var text=voiceNumberText_(normalizeVoiceAliases_(itemQuantityNumberText_(input))).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ').trim();
       // Accept natural quantity expressions in either order:
@@ -2998,7 +3002,6 @@
     if(window.speechSynthesis)window.speechSynthesis.cancel();
   },
   stop:function(show){
-    this.pendingItemQuantity=null;
     this.active=false;this.epoch++;this.promptId='';this.cancelInput();
     this.el('voiceTokenBtn').classList.remove('recording');this.el('voiceItemsBtn').classList.remove('recording');
     if(show)this.el('guidedQuestion').textContent='बातचीत रुकी। भरी हुई जानकारी सुरक्षित है। जाँचें या फिर शुरू करें।';
@@ -3061,7 +3064,9 @@
   queueItemSpeech:function(text,delay){
     if(!this.active||!this.listening||this.state!=='item')return;
     text=String(text||'').trim();if(!text)return;
-    this.itemSpeechBuffer=(this.itemSpeechBuffer+' '+text).replace(/\s+/g,' ').trim();
+    if(text!==this.itemSpeechBuffer){
+      this.itemSpeechBuffer=text.indexOf(this.itemSpeechBuffer+' ')===0?text:(this.itemSpeechBuffer+' '+text).replace(/\s+/g,' ').trim();
+    }
     this.el('guidedTranscript').textContent=this.itemSpeechBuffer+' …';
     if(this.itemSpeechTimer)clearTimeout(this.itemSpeechTimer);
     var self=this,epoch=this.epoch;
@@ -3348,19 +3353,10 @@
       this.afterDate();return;
     }
     if(state==='item'){
-      var quantityOnly=itemQuantityNumberText_(text).replace(/^(?:quantity|qty|मात्रा)\s*[:\-]?\s*/i,'').replace(/\s*(?:नग|पीस|pieces?|है|हैं)\s*$/i,'').trim();
-      if(/^\d+$/.test(quantityOnly)&&Number(quantityOnly)>0){
-        this.pendingItemQuantity=Number(quantityOnly);
-        this.ask('item','मात्रा '+this.pendingItemQuantity+'। अब आइटम का नाम बोलें।');return;
-      }
-      if(this.pendingItemQuantity){
-        if(!/^\d+(?:\.\d+)?(?:\s|$)/.test(itemQuantityNumberText_(text).trim()))text=this.pendingItemQuantity+' '+text;
-      }
       result=voiceReadItems_(text);var incoming=result.items.filter(function(r){return !voiceIsBlankItem_(r);});
       if(incoming.length!==1||incoming.some(function(r){return !r.item||!Number.isInteger(Number(r.qty))||Number(r.qty)<=0;})){this.ask('item','एक आइटम की मात्रा और नाम बोलें।');return;}
       if(result.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){this.ask('item','पूरी आइटम लाइन साफ़ दोहराएँ।');return;}
-      this.pendingItemQuantity=null;
-      incoming[0].service=incoming[0].service||resolveVoiceService_('WI',false)||'WI';incoming[0].locked=false;
+        incoming[0].service=incoming[0].service||resolveVoiceService_('WI',false)||'WI';incoming[0].locked=false;
       rows.splice(this.itemIndex,this.itemIndex<rows.length?1:0,incoming[0]);this.render(rows,true);
       this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
     }
