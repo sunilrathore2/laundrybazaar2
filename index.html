@@ -1296,7 +1296,7 @@
     function normalizeVoiceAliases_(text){
       var value = normalizeKgSpelling_(text).replace(/(\d)(?=kgs?\b)/gi,'$1 ').replace(/\bkg\s*-\s*gram\b/gi,'kg');
       value=value.replace(/\b(?:kiloo|kilogaram|kiligram|kilogm)\b/gi,'kg')
-        .replace(/\b(?:aairun|airun|ayron|aayron|ayarn|aayarn|aiyarn|iren|aion|irons|ironed|prass|presing|prees|pressed|istiri|isturi|ishtri|ishtiri|istari|istry|ishtree)\b/gi,'iron')
+        .replace(/\b(?:pres|presss|aairun|airun|ayron|aayron|ayarn|aayarn|aiyarn|iren|aion|irons|ironed|prass|presing|prees|pressed|istiri|isturi|ishtri|ishtiri|istari|istry|ishtree)\b/gi,'iron')
         .replace(/(^|\s)(?:आयर्न|एयरन|आयरण|इस्तिरी)(?=\s|$|[.,।])/g,'$1आयरन');
       var aliases = [
         // Recognizer may drop the K in "KG Fold"; only accept G before Fold.
@@ -3232,9 +3232,9 @@
         if(chainedRows.length===1&&chainedRows[0].item&&Number.isInteger(Number(chainedRows[0].qty))&&Number(chainedRows[0].qty)>0&&!chainedItems.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){
           var chainedIso=voiceDateToIso_(pending.text);if(!chainedIso){this.ask('date','डिलीवरी तारीख दोबारा बोलें।');return;}
           this.el('tokenDeliveryDate').value=chainedIso;this.entryPending=null;
-          chainedRows[0].service=resolveVoiceService_('WI',false)||'WI';chainedRows[0].weight='';chainedRows[0].rate='';chainedRows[0].locked=false;
+          chainedRows[0].service=chainedRows[0].service||resolveVoiceService_('WI',false)||'WI';chainedRows[0].locked=false;
           rows.splice(this.itemIndex,this.itemIndex<rows.length?1:0,chainedRows[0]);this.render(rows,true);
-          this.ask('service_fast','सर्विस WI है। WI नहीं है तो दूसरी सर्विस बोलें, नहीं तो रेट बोलें।');return;
+          this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
         }
       }
       if(accepted===true){this.entryPending=null;this.state=pending.state;this.acceptEntryOnce=true;this.listening=true;this.receive(pending.text);}
@@ -3250,9 +3250,9 @@
       }
       var directItems=voiceReadItems_(text),directRows=directItems.items.filter(function(r){return !voiceIsBlankItem_(r);});
       if(directRows.length===1&&directRows[0].item&&Number.isInteger(Number(directRows[0].qty))&&Number(directRows[0].qty)>0&&!directItems.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){
-        row.locked=true;directRows[0].service=resolveVoiceService_('WI',false)||'WI';directRows[0].weight='';directRows[0].rate='';directRows[0].locked=false;
+        row.locked=true;directRows[0].service=directRows[0].service||resolveVoiceService_('WI',false)||'WI';directRows[0].locked=false;
         this.itemIndex=rows.length;rows.push(directRows[0]);this.render(rows,true);
-        this.ask('service_fast','सर्विस WI है। WI नहीं है तो दूसरी सर्विस बोलें, नहीं तो रेट बोलें।');return;
+        this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
       }
       if(rowAnswer===true){row.locked=true;this.render(rows,true);this.itemIndex++;this.nextItemField();}
       else if(rowAnswer===false){rows[this.itemIndex]={service:'',item:'',rate:'',qty:1,weight:'',amt:0,locked:false};this.render(rows,true);this.ask('item','ठीक है। मात्रा और आइटम का नाम दोबारा बोलें।');}
@@ -3264,7 +3264,7 @@
       if(itemAnswer===true&&draft){
         this.pendingItemDraft=null;
         rows.splice(this.itemIndex,this.itemIndex<rows.length?1:0,draft);this.render(rows,true);
-        this.ask('service_fast','सर्विस WI है। WI नहीं है तो दूसरी सर्विस बोलें, नहीं तो रेट बोलें।');
+        this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');
       }else if(itemAnswer===false){
         this.pendingItemDraft=null;this.ask('item','मात्रा और आइटम का नाम दोबारा बोलें।');
       }else this.ask('item_name_confirm','मात्रा '+(draft?draft.qty:'')+', आइटम '+(draft?draft.item:'')+'। सही?');
@@ -3272,6 +3272,11 @@
     }
     if(state==='service_confirm'){
       var serviceAnswer=this.yesNo(text),confirmedService=this.pendingService;
+      var repeatedService=resolveVoiceService_(text,false);
+      if(serviceAnswer===null&&repeatedService){
+        if(serviceOptionCode_(repeatedService)===serviceOptionCode_(confirmedService))serviceAnswer=true;
+        else {this.pendingService=repeatedService;this.ask('service_confirm','सर्विस '+repeatedService+'। सही?');return;}
+      }
       if(serviceAnswer===true&&confirmedService){
         this.pendingService='';rows[this.itemIndex].service=confirmedService;
         if(!/^(KG|WF|KG WF)$/.test(String(confirmedService).toUpperCase()))rows[this.itemIndex].weight=0;
@@ -3330,9 +3335,9 @@
       result=voiceReadItems_(text);var incoming=result.items.filter(function(r){return !voiceIsBlankItem_(r);});
       if(incoming.length!==1||incoming.some(function(r){return !r.item||!Number.isInteger(Number(r.qty))||Number(r.qty)<=0;})){this.ask('item','एक आइटम की मात्रा और नाम बोलें।');return;}
       if(result.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){this.ask('item','पूरी आइटम लाइन साफ़ दोहराएँ।');return;}
-      incoming[0].service=resolveVoiceService_('WI',false)||'WI';incoming[0].weight='';incoming[0].rate='';incoming[0].locked=false;
+      incoming[0].service=incoming[0].service||resolveVoiceService_('WI',false)||'WI';incoming[0].locked=false;
       rows.splice(this.itemIndex,this.itemIndex<rows.length?1:0,incoming[0]);this.render(rows,true);
-      this.ask('service_fast','सर्विस WI है। WI नहीं है तो दूसरी सर्विस बोलें, नहीं तो रेट बोलें।');return;
+      this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
     }
     if(state==='service_fast'){
       var fastTarget=this.itemIndex;if(!rows[fastTarget]){this.ask('item','मात्रा और आइटम बोलें।');return;}
@@ -3375,9 +3380,9 @@
       // saying yes and waiting for one more question.
       result=voiceReadItems_(text);var nextItems=result.items.filter(function(r){return !voiceIsBlankItem_(r);});
       if(this.fastMode&&nextItems.length===1&&nextItems[0].item&&Number.isInteger(Number(nextItems[0].qty))&&Number(nextItems[0].qty)>0&&!result.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){
-        nextItems[0].service=resolveVoiceService_('WI',false)||'WI';nextItems[0].weight='';nextItems[0].rate='';nextItems[0].locked=false;
+        nextItems[0].service=nextItems[0].service||resolveVoiceService_('WI',false)||'WI';nextItems[0].locked=false;
         this.itemIndex=rows.length;rows.push(nextItems[0]);this.render(rows,true);
-        this.ask('service_fast','सर्विस WI है। WI नहीं है तो दूसरी सर्विस बोलें, नहीं तो रेट बोलें।');return;
+        this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
       }
       this.ask('more','अगले आइटम की मात्रा और नाम बोलें, या बस कहें।');return;
     }
