@@ -1024,9 +1024,6 @@
       if(!validFormText_(obj.customerName)||items.some(function(it){return !validFormText_(it.item);})||(obj.remark&&!validFormText_(obj.remark)))return alert('नाम, आइटम और रिमार्क में सही Hindi या English text भरें।');
       if(!/^\d{10}$/.test(obj.phone)) return alert('Phone must be exactly 10 digits.');
       if(!obj.deliveryDate) return alert('Delivery Date required.');
-      var todayForDelivery=new Date();
-      var todayDeliveryIso=todayForDelivery.getFullYear()+'-'+String(todayForDelivery.getMonth()+1).padStart(2,'0')+'-'+String(todayForDelivery.getDate()).padStart(2,'0');
-      if(obj.deliveryDate<todayDeliveryIso) return alert('Delivery Date cannot be before today.');
       if(!items.length || items.some(function(it){ return !it.service || !it.item || !Number.isInteger(Number(it.qty)) || Number(it.qty)<=0 || (/^(KG|WF)$/.test(it.service) && !(Number(it.weight)>0)); })) {
         return alert('Enter valid Service, Item and Quantity; enter Weight for KG items.');
       }
@@ -1562,7 +1559,7 @@
       var singles={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9};
       var tens={twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
       text=text.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[ -]+(one|two|three|four|five|six|seven|eight|nine)\b/gi,function(_,t,s){return String(tens[t.toLowerCase()]+singles[s.toLowerCase()]);});
-      var words={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,ek:1,do:2,teen:3,char:4,chaar:4,chaarr:4,chaarh:4,panch:5,paanch:5,chhe:6,che:6,saat:7,aath:8,nau:9,das:10,'शून्य':0,'जीरो':0,'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'अट्ठाइस':28,'उनतीस':29,'तीस':30,'इकतीस':31};
+      var words={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,ek:1,do:2,teen:3,char:4,chaar:4,panch:5,paanch:5,chhe:6,che:6,saat:7,aath:8,nau:9,das:10,'शून्य':0,'जीरो':0,'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'अट्ठाइस':28,'उनतीस':29,'तीस':30,'इकतीस':31};
       text=text.replace(/[A-Za-z\u0900-\u097F]+/g,function(w){return Object.prototype.hasOwnProperty.call(words,w.toLowerCase())?String(words[w.toLowerCase()]):w;});
       text=text.replace(/\b2\s+(?:thousand|hazar|हजार|हज़ार)\s+(\d{1,2})\b/gi,function(_,n){return String(2000+Number(n));});
       text=text.replace(/(\d+)\s*(?:point|decimal|पॉइंट|प्वाइंट|दशमलव)\s*(\d+)(?:\s+(\d)(?=\s*(?:kg|किलो|केजी)))?/gi,function(_,a,b,c){return a+'.'+b+(c||'');});
@@ -1586,7 +1583,8 @@
       }
       else if((match=text.match(/^\s*(\d{1,2})(?:st|nd|rd|th)?\s*(?:तारीख़?|तारिख|tarikh|tareekh|date)(?=\s|$|[,;।])/i)) || (match=text.match(/^\s*(\d{1,2})(?:st|nd|rd|th)?(?=\s*(?:$|[,;।]|को|है|ko\b|hai\b))/i))){
         day=Number(match[1]);month=today.getMonth()+1;year=today.getFullYear();end=match[0].length;
-        if(day<today.getDate()){
+        var lastDay=new Date(year,month,0).getDate();
+        if(today.getDate()>lastDay-7 && day<today.getDate()){
           month++;if(month>12){month=1;year++;}
         }
       }
@@ -1594,10 +1592,8 @@
       if(year<100)year+=2000;
       var checked=new Date(year,month-1,day);
       var valid=year>=2000 && year<=2199 && checked.getFullYear()===year && checked.getMonth()===month-1 && checked.getDate()===day;
-      var todayOnly=new Date(today.getFullYear(),today.getMonth(),today.getDate());
-      if(valid && checked<todayOnly)valid=false;
       var rest=text.slice(end).replace(/^\s*(?:(?:को|की|है|हैं|देना|देनी|देनी है|करना|चाहिए|रखना|रखो|करो|डिलीवरी|डिलिवरी|ko|ki|hai|dena|deni|karna|rakhna|delivery)(?=\s|$|[,;।])\s*)+/i,'');
-      return {value:valid?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'',rest:rest,consumed:true,error:valid?'':'Delivery date cannot be before today. Please correct it.'};
+      return {value:valid?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'',rest:rest,consumed:true,error:valid?'':'Invalid delivery date. Please correct it.'};
     }
 
     function voiceDateToIso_(text){return voiceReadDate_(String(text||'').replace(/^\s*(?:delivery\s*(?:date)?|डिलीवरी\s*(?:डेट|तारीख)?|date|तारीख)\s*[:\-]?\s*/i,'')).value;}
@@ -1732,7 +1728,7 @@
     function voiceReadItems_(input){
       // STT may join quantity and item, e.g. 4shart or ४शर्ट.
       input=voiceUnicodeText_(input).replace(/([0-9०-९])(?=[A-Za-z\u0900-\u097F])/g,'$1 ')
-        .replace(/^(चार|ch+a+r+h?|four)\s*[,،:;-]?\s*(?=शर्ट|सर्ट|shirts?\b|shart\b|shert\b|sart\b)/i,'4 ');
+        .replace(/^(चार|chaar|char|four)\s*[,،:;-]?\s*(?=शर्ट|सर्ट|shirts?\b|shart\b|shert\b|sart\b)/i,'4 ');
 
       // Normalize the service before splitting "and": wash AND iron stays one service.
       var text=voiceNumberText_(normalizeVoiceAliases_(itemQuantityNumberText_(input))).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ').trim();
@@ -3189,8 +3185,8 @@
     if(/(?:^|\s)(?:nhi|nahee|nai|naah|नहि|rehne do|rahne do|रहने दो|छोड़ो|छोडो|रुको|ruko|incorrect)(?:\s|$)/.test(s))return false;
     // Any clear negative intent wins, even when action words follow it.
     if(/(?:^|\s)(?:नहीं|नही|ना|मत|गलत|रद्द|no|nope|nah|nahi|nahin|not|don't|dont|wrong|cancel|reject|negative)(?:\s|$)/.test(s))return false;
-    // Short affirmative sounds requested for confirmation; negatives above win.
-    if(/^(?:hm+|hu+n|hao|hanji|haanji|हनजी|हांजी|हम्म|हूं|हूँ|हाओ)(?:\s+(?:ji|jee|जी|please|प्लीज))?$/.test(s))return true;
+    // Short affirmative words/sounds; negatives above always win.
+    if(/^(?:hm+|hmm+|mmm+|mm[- ]?hm+|uh[- ]?huh|uh[- ]?ha|hu+n|hao|hanji|haanji|हनजी|हांजी|हम्म+|हूं|हूँ|हाओ)(?:\s+(?:ji|jee|जी|please|प्लीज))?$/.test(s))return true;
     // Accept natural affirmative sentences, not only one exact word.
     if(/(?:^|\s)(?:हाँ|हां|हा|हाँजी|हांजी|हाजी|जी हाँ|जी हां|हूँ|हूं|haan|haa|han|ha|hanji|yes|yeah|yep|yup|sure|correct|affirmative|positive)(?:\s|$)/.test(s))return true;
     if(/^(?:जी|ओके|ओकेय|ठीक|ठीक है|ठीक है जी|बिल्कुल|बिल्कुल सही|सही|सही है|सही है जी|करो|कर दो|कर दीजिए|कर दें|हो गया|चलो|आगे|अगला|जारी रखो|जोड़ो|जोडो|और जोड़ो|और जोडो|ok+|okay|okey|theek|theek hai|thik|thik hai|bilkul|bilkul sahi|sahi|sahi hai|right|fine|good|done right|go ahead|proceed|continue|next|confirm|confirmed|do it|kar do|kardo|jodo|aur jodo|add|add it|add more|save|save it|save token)(?:\s+(?:जी|please|प्लीज))?$/.test(s))return true;
@@ -3389,6 +3385,9 @@
       if(result.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){this.ask('item','पूरी आइटम लाइन साफ़ दोहराएँ।');return;}
         incoming[0].service=incoming[0].service||resolveVoiceService_('WI',false)||'WI';incoming[0].locked=false;
       rows.splice(this.itemIndex,this.itemIndex<rows.length?1:0,incoming[0]);this.render(rows,true);
+      if(String(this.rows()[this.itemIndex].service).toUpperCase()==='WI'){
+        this.ask('service_fast','सर्विस WI है। अगर सर्विस बदलनी है तो दूसरी सर्विस का नाम बोलें। नहीं तो रेट बोलें।');return;
+      }
       this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
     }
     if(state==='service_fast'){
@@ -3398,8 +3397,16 @@
         this.pendingService=fastService;this.ask('service_confirm','सर्विस '+fastService+'। सही?');return;
       }
       if(fastRate!==null){rows[fastTarget].rate=fastRate;this.render(rows);this.nextItemField();return;}
-      if(fastAnswer===true){this.nextItemField();return;}
-      this.ask('service_fast','WI नहीं है तो दूसरी सर्विस बोलें, नहीं तो रेट बोलें।');return;
+      if(fastAnswer===true){
+        if(String(rows[fastTarget].service).toUpperCase()==='WI'){
+          this.ask('rate',rows[fastTarget].qty+' '+rows[fastTarget].item+' का रेट बोलें।');return;
+        }
+        this.nextItemField();return;
+      }
+      if(String(rows[fastTarget].service).toUpperCase()==='WI'){
+        this.ask('service_fast','सर्विस WI है। अगर सर्विस बदलनी है तो दूसरी सर्विस का नाम बोलें। नहीं तो रेट बोलें।');return;
+      }
+      this.ask('service_fast','दूसरी सर्विस बोलें, या रेट बोलें।');return;
     }
     if(state==='service'){
       var service=resolveVoiceService_(text,false);
