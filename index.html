@@ -1680,7 +1680,7 @@
     // Item-only vocabulary: never apply these aliases to customer names or phones.
     function itemQuantityNumberText_(value){
       var groups = [
-        'शून्य|zero|shunya', 'एक|ek|aik', 'दो|do', 'तीन|teen|tin', 'चार|char|chaar',
+        'शून्य|zero|shunya', 'एक|ek|aik', 'दो|do', 'तीन|teen|tin', 'चार|char|chaar|chaarh|फोर|four|for',
         'पांच|पाँच|panch|paanch', 'छह|छः|छे|छै|che|chhe|chhah|chah', 'सात|saat|sat', 'आठ|aath|ath', 'नौ|nau',
         'दस|das', 'ग्यारह|ग्यारहा|gyarah|gyara|gyaarah', 'बारह|बारा|barah|bara|baarah', 'तेरह|तेरा|terah|tera', 'चौदह|चौदा|chaudah|chauda',
         'पंद्रह|पन्द्रह|पंदरा|पन्द्रा|pandrah|pandra|pandara', 'सोलह|सोला|solah|sola', 'सत्रह|सतरा|सतरह|satrah|satra', 'अठारह|अठारा|atharah|athara', 'उन्नीस|उनिस|unnees|unnis',
@@ -1711,7 +1711,7 @@
 
     function voiceReadItems_(input){
       // Normalize the service before splitting "and": wash AND iron stays one service.
-      var text=voiceNumberText_(normalizeVoiceAliases_(itemQuantityNumberText_(input))).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ');
+      var text=voiceNumberText_(normalizeVoiceAliases_(itemQuantityNumberText_(input))).replace(/\b(?:quantity|qty|item|service)\s*[:\-]?\s*|(?:आइटम|मात्रा|सर्विस|सेवा)\s*[:\-]?\s*/gi,' ').trim();
       // Accept natural quantity expressions in either order:
       // "2 piece shirt", "shirt 2", "शर्ट के 2", "दो नग पैंट".
       text=text.replace(/^(\d+)\s*(?:pieces?|pcs?|piece|नग|पीस|जोड़ी|जोड़ी)\s+/i,'$1 ');
@@ -2998,6 +2998,7 @@
     if(window.speechSynthesis)window.speechSynthesis.cancel();
   },
   stop:function(show){
+    this.pendingItemQuantity=null;
     this.active=false;this.epoch++;this.promptId='';this.cancelInput();
     this.el('voiceTokenBtn').classList.remove('recording');this.el('voiceItemsBtn').classList.remove('recording');
     if(show)this.el('guidedQuestion').textContent='बातचीत रुकी। भरी हुई जानकारी सुरक्षित है। जाँचें या फिर शुरू करें।';
@@ -3347,9 +3348,18 @@
       this.afterDate();return;
     }
     if(state==='item'){
+      var quantityOnly=itemQuantityNumberText_(text).replace(/^(?:quantity|qty|मात्रा)\s*[:\-]?\s*/i,'').replace(/\s*(?:नग|पीस|pieces?|है|हैं)\s*$/i,'').trim();
+      if(/^\d+$/.test(quantityOnly)&&Number(quantityOnly)>0){
+        this.pendingItemQuantity=Number(quantityOnly);
+        this.ask('item','मात्रा '+this.pendingItemQuantity+'। अब आइटम का नाम बोलें।');return;
+      }
+      if(this.pendingItemQuantity){
+        if(!/^\d+(?:\.\d+)?(?:\s|$)/.test(itemQuantityNumberText_(text).trim()))text=this.pendingItemQuantity+' '+text;
+      }
       result=voiceReadItems_(text);var incoming=result.items.filter(function(r){return !voiceIsBlankItem_(r);});
       if(incoming.length!==1||incoming.some(function(r){return !r.item||!Number.isInteger(Number(r.qty))||Number(r.qty)<=0;})){this.ask('item','एक आइटम की मात्रा और नाम बोलें।');return;}
       if(result.issues.some(function(issue){return !/^(Select the service|Weight is required)/.test(issue);})){this.ask('item','पूरी आइटम लाइन साफ़ दोहराएँ।');return;}
+      this.pendingItemQuantity=null;
       incoming[0].service=incoming[0].service||resolveVoiceService_('WI',false)||'WI';incoming[0].locked=false;
       rows.splice(this.itemIndex,this.itemIndex<rows.length?1:0,incoming[0]);this.render(rows,true);
       this.ask('service_fast','सर्विस '+this.rows()[this.itemIndex].service+' है। बदलनी है तो दूसरी सर्विस बोलें, नहीं तो हाँ बोलें।');return;
