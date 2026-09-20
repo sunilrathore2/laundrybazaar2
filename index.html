@@ -1109,7 +1109,7 @@
       items.forEach(function(it, i){
         it.item=hindiItem_(it.item);
         var options = serviceOptions.filter(function(opt){return !/^BLK$/i.test(String(opt).trim());}).map(function(opt){
-          return '<option value="'+escapeHtml(opt)+'" '+(String(it.service||'').trim().toLowerCase()===String(opt||'').trim().toLowerCase()?'selected':'')+'>'+escapeHtml(opt)+'</option>';
+          return '<option value="'+escapeHtml(opt)+'" '+(((serviceOptionCode_(it.service)&&serviceOptionCode_(it.service)===serviceOptionCode_(opt))||String(it.service||'').trim().toLowerCase()===String(opt||'').trim().toLowerCase())?'selected':'')+'>'+escapeHtml(opt)+'</option>';
         }).join('');
         html += '<tr class="tokenItemRow" data-locked="'+!!it.locked+'">'+
           '<td><input class="token-qty" type="number" min="1" step="1" value="'+(it.qty == null ? 1 : Number(it.qty))+'" oninput="calcTokenItemRow(this)"></td>'+
@@ -1289,7 +1289,7 @@
     function normalizeVoiceDigits_(text){
       var devanagari = '०१२३४५६७८९';
       text = String(text||'').replace(/[०-९]/g, function(d){ return String(devanagari.indexOf(d)); });
-      var map = {zero:'0',oh:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',das:'10',gyarah:'11',barah:'12','दस':'10','ग्यारह':'11','बारह':'12','पाँच':'5',shunya:'0',ek:'1',do:'2',teen:'3',char:'4',chaar:'4',panch:'5',che:'6',chhe:'6',saat:'7',aath:'8',nau:'9','शून्य':'0','एक':'1','दो':'2','तीन':'3','चार':'4','पांच':'5','छह':'6','सात':'7','आठ':'8','नौ':'9'};
+      var map = {zero:'0',oh:'0',one:'1',two:'2',three:'3',four:'4',for:'4',fore:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',das:'10',gyarah:'11',barah:'12','दस':'10','ग्यारह':'11','बारह':'12','पाँच':'5',shunya:'0',ek:'1',do:'2',teen:'3',char:'4',chaar:'4',charr:'4',chaaar:'4',chahar:'4',chaarh:'4',chhar:'4',chyar:'4',chaaru:'4',panch:'5',che:'6',chhe:'6',saat:'7',aath:'8',nau:'9','शून्य':'0','एक':'1','दो':'2','तीन':'3','चार':'4','चार्':'4','चर':'4','च्यार':'4','चाहर':'4','चआर':'4','पांच':'5','छह':'6','सात':'7','आठ':'8','नौ':'9'};
       return text.replace(/[A-Za-z\u0900-\u097F]+/g, function(w){ return Object.prototype.hasOwnProperty.call(map, w.toLowerCase()) ? map[w.toLowerCase()] : w; });
     }
 
@@ -1301,9 +1301,10 @@
     // Canonicalize letter-by-letter KG before punctuation and filler cleanup.
     function normalizeKgSpelling_(text){
       return voiceUnicodeText_(text)
-        .replace(/\bk[\s.\-]*g\b\.?/gi,'kg')
-        .replace(/\b(?:kay|key|ke|kee|ki)[\s.\-]*(?:gee|jee|ji|gi|g)\b\.?/gi,'kg')
-        .replace(/(^|[\s,;:])(?:के|की|कि)[\s.\-]*(?:जी|जि|गी)\.?(?=\s|$|[,;।])/g,'$1kg');
+        .replace(/\bk[\s.\-_/]*(?:g|gee|jee|ji)\b\.?/gi,'kg')
+        .replace(/\b(?:kay|kei|key|kaye|ke|kee|ki|kai)[\s.\-_/]*(?:gee|jee|ji|gi|g|ze|zee)\b\.?/gi,'kg')
+        .replace(/\b(?:kaygee|keygee|kegee|keegee|kaigee|kayjee|keyjee|kejee|kagee|kegi|keji|kiji)\b/gi,'kg')
+        .replace(/(^|[\s,;:])(?:के|की|कि|कै)[\s.\-_/]*(?:जी|जि|गी|ज़ी|जीई)\.?(?=\s|$|[,;।])/g,'$1kg');
     }
 
     function normalizeVoiceAliases_(text){
@@ -1327,12 +1328,12 @@
         // Standalone shortcuts come AFTER the complete washing combinations.
         [/\bwash\b|वॉश|वाश/gi,'WI'],
         [/\bfold\b|फोल्ड/gi,'WF'],
-        [/\b(?:d\s*c|dry\s*clean(?:ing)?)\b|डी\s*सी|ड्राई\s*क्लीन(?:िंग)?/gi,'DC'],
+        [/\b(?:d\s*c|dry\s*clean(?:ing)?|dryclean(?:ing)?|drai\s*clean|dray\s*clean|dry\s*klin)\b|डी\s*सी|ड्राई\s*क्लीन(?:िंग)?|ड्राय\s*क्लीन/gi,'DC'],
         // Washing combinations above must take precedence over standalone ironing.
         [/\bi\s*\.?\s*r\b|आई\s*आर/gi,'IR'],
         [/\b(?:(?:only|just|khali|sirf)\s+)?(?:iron(?:ing)?|press(?:ing)?|istri|istree)(?:\s+(?:press|iron(?:ing)?))?(?:\s+(?:karna|karo|kar\s*do))?(?:\s+hai)?\b/gi,'IR'],
         [/(?:(?:खाली|सिर्फ|केवल)\s*)?(?:आयरनिंग|आयरन|प्रेस|प्रैस|प्रेश|परेस|परेश|पिरेस|पीरेस|परिस|प्रिस|इस्त्री|इस्तरी)(?:\s*(?:प्रेस|आयरनिंग|आयरन))?(?:\s*(?:करना|करो|कर\s*दो))?(?:\s*है)?/g,'IR'],
-        [/\b(?:k\s*\.?\s*g\.?|kgs?|(?:kay|key|ke|ki|kee)\s*(?:gee|jee|ji|g)|keji|kiji|(?:kilo|kelo|keelo|killo)(?:\s*gram(?:me)?)?s?)\b|(?:के|की|कि)\s*\.?\s*(?:जी|जि|गी)\.?|केज|कीजी|किजी|किलो(?:ं|\s*ग्राम)?|कीलो|किल्लो|किलोग्राम/gi,'kg'],
+        [/\b(?:k\s*\.?\s*g\.?|kgs?|(?:kay|kei|key|kaye|ke|ki|kee|kai)\s*(?:gee|jee|ji|gi|g|ze|zee)|kaygee|keygee|kegee|keegee|kaigee|kayjee|keyjee|kejee|kagee|kegi|keji|kiji|(?:kilo|kelo|keelo|killo)(?:\s*gram(?:me)?)?s?)\b|(?:के|की|कि|कै)\s*\.?\s*(?:जी|जि|गी|ज़ी|जीई)\.?|केज|कीजी|किजी|किलो(?:ं|\s*ग्राम)?|कीलो|किल्लो|किलोग्राम/gi,'kg'],
         [/\b(?:s\s*h|shoe[s]?\s*clean(?:ing)?)\b|एस\s*एच|शू(?:ज़|ज|ज्)?\s*क्लीनिंग|जूते?\s*की\s*सफाई/gi,'SH'],
         [/\b(?:shoe|shoes|shoo|shoos|shu|shuz|sooj|sooz|soo|su|jute|joote|joota|joota|jutee)\b|जूते|जूता|जूती|जुते|जुता|जोते|जोता|शूज़|शूज|शू|सूज|सू/gi,'shoe'],
         [/\bb\s*l\s*k\b|बी\s*एल\s*के/gi,'BLK'],
@@ -1383,9 +1384,9 @@
       var lexicon={
         WI:['wi','wash','wash iron','wash and iron','washing iron','waash','wosh','vosh','vors','bosh','bhosh','boss','waas','vaas','vas','horse iron','hosh iron','horsh iron','hoss iron','vo siran','vosiran','vosh iron','washiran','wash aayaran','dabloo aai','dablu ai','dhoke press','dho ke press','वॉश','वाश','धोके प्रेस','धो के प्रेस'],
         WF:['wf','double u f','dablu ef','wash fold','wash and fold','washing fold','kg wash fold','kilo wash fold','fold','foald','foled','folding','old','bold','hold','cold','gold','told','sold','world','wass fold','vass fold','baas fold','wos fold','vos fold','bosh fold','wash old','wass old','vass bold','baas hold','wos cold','waash fold','वॉश फोल्ड','वाश फोल्ड','वास फोल्ड','फोल्ड','ओल्ड','बोल्ड','होल्ड','कोल्ड','गोल्ड','किलो वॉश फोल्ड'],
-        DC:['dc','dry clean','dry cleaning','dryclean','drai clean','dray clean','die clean','ड्राई क्लीन','ड्राय क्लीन','डी सी'],
+        DC:['dc','d c','dry clean','dry cleaning','dryclean','drycleaning','drai clean','dray clean','dry klin','die clean','ड्राई क्लीन','ड्राय क्लीन','ड्राईक्लीन','डी सी'],
         IR:['ir','i r','eye are','iron','airon','aairun','aairon','a iron','ai run','ai ron','i run','i ron','aai run','aai ron','ayaran','ayran','airan','iran','eraan','eren','irun','hi run','ironning','ironing','earn','press','presss','pressing','pres','pressh','presh','prash','pris','priss','prez','pires','pirees','peeres','peres','pares','paress','parais','istri','istree','iron only','press only','आयरन','आयरनिंग','आइरन','अयरन','ईरन','आई रन','आइ रन','प्रेस','प्रैस','प्रेश','परेस','परेश','पिरेस','पीरेस','परिस','प्रिस','प्रीस','इस्त्री','खाली प्रेस'],
-        KG:['kg','k g','kgs','keygee','kaygee','ke g','ki ji','kee jee','keji','kiji','kilo','kilos','kiloes','keelos','keeloo','kelo','keelo','killo','kilogram','kilogramme','kilo gram','keelo gram','keelos gram','kay gee','key gee','केजी','के जी','के जि','कीजी','की जी','कि जी','किजी','किलो','किलों','कीलो','किल्लो','किलो ग्राम','किलोग्राम'],
+        KG:['kg','k g','k.g.','kgs','keygee','kaygee','kegee','keegee','kaigee','kayjee','keyjee','kejee','kagee','kegi','ke g','ki ji','kee jee','keji','kiji','kilo','kilos','kiloes','keelos','keeloo','kelo','keelo','killo','kilogram','kilogramme','kilo gram','keelo gram','keelos gram','kay gee','key gee','kei gee','kaye gee','kai gee','kay jee','key jee','केजी','के जी','के जि','कै जी','कीजी','की जी','कि जी','किजी','के ज़ी','किलो','किलों','कीलो','किल्लो','किलो ग्राम','किलोग्राम'],
         SH:['sh','shoe','shoes','shoo','shoos','shu','shuz','soo','su','shoe clean','shoe cleaning','sooj','sooz','joota','joote','jute','jutee','जूता','जूते','जूती','जुता','जुते','जोता','जोते','शू','शूज','शूज़','सू','सूज']
       };
       var input=String(heard||'').replace(/\b(?:service|please|karna|karo|hai|ki|ka|ke)\b|(?:सर्विस|सेवा|करना|करो|है|की|का|के)/gi,' ').replace(/\s+/g,' ').trim();
@@ -1408,7 +1409,7 @@
       if(/^(?:1|one|won|wan|van|ek|i|eye|वन|एक|आई|आइ)$/i.test(quick))return 'WI';
       if(/^(?:2|two|too|to|tu|do|टू|तु|दो)$/i.test(quick))return 'DC';
       if(/^(?:3|three|tree|tri|teen|थ्री|ट्री|तीन)$/i.test(quick))return 'KG';
-      if(/^(?:4|four|for|fore|char|chaar|फोर|चार)$/i.test(quick))return 'IR';
+      if(/^(?:4|four|for|fore|char|chaar|charr|chaaar|chahar|chaarh|chhar|chyar|chaaru|फोर|चार|चार्|चर|च्यार|चाहर|चआर)$/i.test(quick))return 'IR';
       if(/^(?:5|five|faiv|panch|paanch|फाइव|पांच|पाँच)$/i.test(quick))return 'WF';
       return '';
     }
@@ -1425,7 +1426,7 @@
       if(/(?:\bsh\b|shoe|shoes|shoo|shoos|shu|shuz|sooj|sooz|joota|joote|jutee?|जूता|जूते|जूती|जुता|जुते|जोता|जोते|शू|शूज|शूज़|सूज)/i.test(original+' '+cleaned))return 'SH';
       if(hasFold)return 'WF'; // WF is the weight-based Wash & Fold service.
       if(isKg||hasKg||/^(?:grams?|gm|ग्राम)$/.test(cleaned))return 'KG';
-      if(/(?:\bd\s*c\b|dry\s*clean|dryclean|ड्राई\s*क्लीन|ड्रायक्लीन|डी\s*सी)/i.test(original+' '+cleaned)||/^(?:dc)+$/i.test(compact))return 'DC';
+      if(/(?:\bd\s*c\b|dry\s*clean|dryclean|drai\s*clean|dray\s*clean|dry\s*klin|ड्राई\s*क्लीन|ड्राय\s*क्लीन|ड्रायक्लीन|डी\s*सी)/i.test(original+' '+cleaned)||/^(?:dc)+$/i.test(compact))return 'DC';
       if(/(?:wash|waash|wosh|vosh|bosh|bhosh|bos|boss|waas|vaas|vas|was|horse|horsh|hosh|hoss|वॉश|वाश|वास).*(?:iron|iran|aayaran|siran|press|pres|istri|इस्त्री|प्रेस|आयरन)|(?:vo\s*siran|vosiran|washiran)|(?:dho\s*ke|dhoke|dho\s*kar|धो\s*के|धोके|धुलाई).*(?:press|pres|iron|प्रेस|आयरन|इस्त्री)/i.test(original+' '+cleaned))return 'WI';
       if(/(?:\bwi\b|dabl+oo?\s*(?:aai|ai|eye)|dablu\s*(?:aai|ai)|डब्ल्यू\s*(?:आई|आइ)|डब्लू\s*(?:आई|आइ))/i.test(original+' '+cleaned))return 'WI';
       // In Laundry Bazaar a standalone spoken "wash" means Wash & Iron.
@@ -1467,9 +1468,10 @@
       // Speech can be recognized before/without a matching Services-sheet row.
       // Keep the two canonical standalone services usable and ensure the
       // selected value also exists in the rendered dropdown.
-      if(code==='WI'||code==='IR'||code==='KG'||code==='SH'){
-        if(!serviceOptions.some(function(opt){return String(opt).trim().toUpperCase()===code;}))serviceOptions.push(code);
-        return code;
+      if(code==='WI'||code==='IR'||code==='KG'||code==='SH'||code==='DC'){
+        var fallbackLabel=code==='DC'?'Dryclean':code;
+        if(!serviceOptions.some(function(opt){return serviceOptionCode_(opt)===code;}))serviceOptions.push(fallbackLabel);
+        return fallbackLabel;
       }
       return '';
     }
@@ -1559,7 +1561,7 @@
       var singles={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9};
       var tens={twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
       text=text.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[ -]+(one|two|three|four|five|six|seven|eight|nine)\b/gi,function(_,t,s){return String(tens[t.toLowerCase()]+singles[s.toLowerCase()]);});
-      var words={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,ek:1,do:2,teen:3,char:4,chaar:4,chaarr:4,chaarh:4,panch:5,paanch:5,chhe:6,che:6,saat:7,aath:8,nau:9,das:10,'शून्य':0,'जीरो':0,'एक':1,'दो':2,'तीन':3,'चार':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'अट्ठाइस':28,'उनतीस':29,'तीस':30,'इकतीस':31};
+      var words={zero:0,oh:0,one:1,two:2,three:3,four:4,for:4,fore:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,ek:1,do:2,teen:3,char:4,chaar:4,charr:4,chaaar:4,chahar:4,chaarr:4,chaarh:4,chhar:4,chyar:4,chaaru:4,panch:5,paanch:5,chhe:6,che:6,saat:7,aath:8,nau:9,das:10,'शून्य':0,'जीरो':0,'एक':1,'दो':2,'तीन':3,'चार':4,'चार्':4,'चर':4,'च्यार':4,'चाहर':4,'चआर':4,'पांच':5,'पाँच':5,'छह':6,'छः':6,'सात':7,'आठ':8,'नौ':9,'दस':10,'ग्यारह':11,'बारह':12,'तेरह':13,'चौदह':14,'पंद्रह':15,'पन्द्रह':15,'सोलह':16,'सत्रह':17,'अठारह':18,'उन्नीस':19,'बीस':20,'इक्कीस':21,'बाईस':22,'तेईस':23,'चौबीस':24,'पच्चीस':25,'छब्बीस':26,'सत्ताईस':27,'अट्ठाईस':28,'अट्ठाइस':28,'उनतीस':29,'तीस':30,'इकतीस':31};
       text=text.replace(/[A-Za-z\u0900-\u097F]+/g,function(w){return Object.prototype.hasOwnProperty.call(words,w.toLowerCase())?String(words[w.toLowerCase()]):w;});
       text=text.replace(/\b2\s+(?:thousand|hazar|हजार|हज़ार)\s+(\d{1,2})\b/gi,function(_,n){return String(2000+Number(n));});
       text=text.replace(/(\d+)\s*(?:point|decimal|पॉइंट|प्वाइंट|दशमलव)\s*(\d+)(?:\s+(\d)(?=\s*(?:kg|किलो|केजी)))?/gi,function(_,a,b,c){return a+'.'+b+(c||'');});
@@ -1697,7 +1699,7 @@
     // Item-only vocabulary: never apply these aliases to customer names or phones.
     function itemQuantityNumberText_(value){
       var groups = [
-        'शून्य|zero|shunya', 'एक|ek|aik', 'दो|do', 'तीन|teen|tin', 'चार|चार्|char|chaar|chaarh|chhar|chaaru|फोर|four|for',
+        'शून्य|zero|shunya', 'एक|ek|aik', 'दो|do', 'तीन|teen|tin', 'चार|चार्|चर|च्यार|चाहर|चआर|char|chaar|charr|chaaar|chahar|chaarh|chhar|chyar|chaaru|फोर|four|for|fore',
         'पांच|पाँच|panch|paanch', 'छह|छः|छे|छै|che|chhe|chhah|chah', 'सात|saat|sat', 'आठ|aath|ath', 'नौ|nau',
         'दस|das', 'ग्यारह|ग्यारहा|gyarah|gyara|gyaarah', 'बारह|बारा|barah|bara|baarah', 'तेरह|तेरा|terah|tera', 'चौदह|चौदा|chaudah|chauda',
         'पंद्रह|पन्द्रह|पंदरा|पन्द्रा|pandrah|pandra|pandara', 'सोलह|सोला|solah|sola', 'सत्रह|सतरा|सतरह|satrah|satra', 'अठारह|अठारा|atharah|athara', 'उन्नीस|उनिस|unnees|unnis',
@@ -2190,8 +2192,9 @@
     }
 
     function setServices(opts) {
-      serviceOptions = Array.isArray(opts) ? opts.slice() : [];
-      ['WI','KG','IR','SH'].forEach(function(code){
+      serviceOptions = Array.isArray(opts) ? opts.map(function(opt){return serviceOptionCode_(opt)==='DC'?'Dryclean':opt;}) : [];
+      ['WI','KG','IR','SH','DC'].forEach(function(code){
+        if(code==='DC'&&!serviceOptions.some(function(s){return serviceOptionCode_(s)==='DC';})){serviceOptions.push('Dryclean');return;}
         if(!serviceOptions.some(function(s){return serviceOptionCode_(s)===code;}))serviceOptions.push(code);
       });
       tokenServicesReady_ = serviceOptions.length > 0;
@@ -2326,7 +2329,7 @@
         <th>Service</th><th>Item</th><th>Rate</th><th>Qty</th><th>Amount</th><th></th></tr></thead><tbody>`;
       for (let i = 0; i < items.length; i++) {
         html += `<tr class="itemRow">
-          <td><select class="service" onchange="handleServiceChange(this)">${serviceOptions.map(opt => `<option ${items[i].service===opt ? 'selected' : ''}>${opt}</option>`).join('')}</select></td>
+          <td><select class="service" onchange="handleServiceChange(this)">${serviceOptions.map(opt => `<option ${((serviceOptionCode_(items[i].service)&&serviceOptionCode_(items[i].service)===serviceOptionCode_(opt))||items[i].service===opt) ? 'selected' : ''}>${opt}</option>`).join('')}</select></td>
           <td><div class="item-input-stack">
             <input class="item" type="text" value="${items[i].item || ''}" autocomplete="off" oninput="capitalizeInput(this)">
             <input class="weight" type="number" value="${items[i].weight || ''}" min="0" step="0.01" placeholder="Weight" aria-label="Weight" oninput="calcAmtRow(this)">
@@ -3177,10 +3180,13 @@
     var s=voiceClean_(voiceUnicodeText_(text).toLowerCase()).replace(/[.!?,।]+/g,' ').replace(/\s+/g,' ').trim();
     if(!s)return null;
     if(this.isStopAnswer(s))return false;
-    s=s.replace(/\bha+n+\b/g,'haan').replace(/\bha+a+\b/g,'haa').replace(/\bha+n+\b/g,'han').replace(/\by+e+s+\b/g,'yes').replace(/\bok+a+y*\b/g,'okay');
+    s=s.replace(/\b(?:h+a+[nm]+|h+[ae]+[nm]+|ha+n+|haa+n*|han+n*|haan+n*|haam+|ham+m*)\b/g,'haan')
+      .replace(/\b(?:h+a+|haah+|haa+)\b/g,'haa')
+      .replace(/\b(?:y+e+[sa]+|ye+s+h*|yas+|ya+s+|yeah+|yea+h*|yah+|yaah+|yep+|yup+)\b/g,'yes')
+      .replace(/\b(?:o+k+(?:a+y+|e+y+)?|okey+|okay+)\b/g,'okay');
     if(/(?:^|\s)(?:नहीं|नही|ना|मत|गलत|रद्द|no|nope|nah|nahi|nahin|not|don't|dont|wrong|cancel|reject|negative|nhi|nahee|nai|naah|rehne do|rahne do|रहने दो|छोड़ो|छोडो|रुको|ruko|incorrect)(?:\s|$)/.test(s))return false;
-    if(/^(?:hm+|h+m+|m+h+|mm+h+|hu+n|hmm+|mmm+|uh[- ]?huh|uh[- ]?ha|aha+|hao|hanji|haanji|हनजी|हांजी|हम्म+|हूं|हूँ|जी हाँ|जी हां)(?:\s+(?:ji|jee|जी|please|प्लीज))?$/.test(s))return true;
-    if(/(?:^|\s)(?:हाँ|हां|हा|हाँजी|हांजी|हाजी|जी हाँ|जी हां|हूँ|हूं|haan|haa|han|ha|hanji|haanji|yes|y|yeah|yep|yup|yess|yesh|sure|okay|ok|okey|correct|affirmative|positive|certainly|absolutely|definitely|agreed|right|fine|good|done|confirmed|confirm|bilkul|bilkul sahi|sahi|sahi hai|theek|theek hai|thik|thik hai|ji|jee|zaroor|zarur|jaroor|jarur|pakka|manzoor|manzur|sahmat|बिलकुल|बिल्कुल सही|सही|सही है|ठीक|ठीक है|जरूर|ज़रूर|पक्का|मंजूर|सहमत)(?:\s|$)/.test(s))return true;
+    if(/^(?:hm+|h+m+|m+h+|mm+h+|hu+n|hun+|hmm+|mmm+|uh[- ]?huh|uh[- ]?ha|aha+|aaha+|hao|hau|haan|haa|hanji|haanji|haji|haan jee|han jee|हनजी|हांजी|हाँजी|हाजी|हां जी|हाँ जी|हम्म+|हूँ+|हूं+|हुं+|जी हाँ|जी हां|जी हा)(?:\s+(?:ji|jee|जी|please|प्लीज))?$/.test(s))return true;
+    if(/(?:^|\s)(?:हाँ|हां|हा|हँ|हां हां|हाँ हाँ|हाँजी|हांजी|हाजी|जी हाँ|जी हां|जी हा|हूँ|हूं|हुं|haan|haa|han|ha|haan haan|han han|haanji|hanji|haji|yes|y|yea|yeah|yah|yep|yup|yess|yesh|yas|ya|sure|okay|ok|okey|correct|affirmative|positive|certainly|absolutely|definitely|agreed|right|fine|good|done|confirmed|confirm|bilkul|bilkul sahi|sahi|sahi hai|theek|theek hai|thik|thik hai|ji|jee|zaroor|zarur|jaroor|jarur|pakka|manzoor|manzur|sahmat|बिलकुल|बिल्कुल सही|सही|सही है|ठीक|ठीक है|जरूर|ज़रूर|पक्का|मंजूर|सहमत)(?:\s|$)/.test(s))return true;
     if(/^(?:करो|कर दो|कर दीजिए|कर दें|हो गया|चलो|आगे|अगला|जारी रखो|जोड़ो|जोडो|और जोड़ो|और जोडो|ok+|okay|okey|theek|theek hai|thik|thik hai|bilkul|bilkul sahi|sahi|sahi hai|right|fine|good|done|go ahead|proceed|continue|next|do it|kar do|kardo|jodo|aur jodo|add|add it|add more|save|save it|save token)(?:\s+(?:जी|please|प्लीज))?$/.test(s))return true;
     return null;
   },
