@@ -720,7 +720,7 @@
     </div>
     <div class="form-row">
       <label>Name:</label>
-      <input type="text" id="customerName" autocomplete="off" oninput="capitalizeInput(this)">
+      <input type="text" id="customerName" autocomplete="off" oninput="capitalizeNameInput(this)">
     </div>
     <div class="form-row">
       <label>Delivery Date:</label>
@@ -921,6 +921,15 @@
       inputElement.value = capitalizeWords(originalValue);
       
       // Restore cursor position
+      inputElement.setSelectionRange(cursorPosition, cursorPosition);
+    }
+
+    // Customer names may contain spaces; capitalize each word without trimming.
+    function capitalizeNameInput(inputElement) {
+      const cursorPosition = inputElement.selectionStart;
+      inputElement.value = String(inputElement.value || '').replace(/(^|\s)([a-z])/g, function(_match, space, letter) {
+        return space + letter.toUpperCase();
+      });
       inputElement.setSelectionRange(cursorPosition, cursorPosition);
     }
 
