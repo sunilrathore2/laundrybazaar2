@@ -526,8 +526,49 @@
       #orderBooking .form-row > input,
       #orderBooking .form-row > select,
       #orderBooking .form-row > textarea {
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
+        flex: 0 1 280px !important;
+        width: 280px !important;
+        min-width: 120px !important;
+        max-width: 320px !important;
+      }
+      #orderBooking .form-row > #orderNumber,
+      #orderBooking .form-row > #orderDate,
+      #orderBooking .form-row > #deliveryDate {
+        flex: 0 0 190px !important;
+        width: 190px !important;
+        min-width: 190px !important;
+        max-width: 190px !important;
+      }
+      #orderBooking .form-row > #phone {
+        flex: 0 0 220px !important;
+        width: 220px !important;
+        min-width: 220px !important;
+        max-width: 220px !important;
+      }
+      #orderBooking .form-row > #customerName {
+        flex: 0 0 320px !important;
+        width: 320px !important;
+        min-width: 220px !important;
+        max-width: 320px !important;
+      }
+      #orderBooking .form-row > #totalAmount {
+        flex: 0 0 140px !important;
+        width: 140px !important;
+        min-width: 140px !important;
+        max-width: 140px !important;
+      }
+      #orderBooking .form-row > #totalQuantity {
+        flex: 0 0 100px !important;
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+      }
+      #orderBooking #phoneLoading,
+      #orderBooking #customerInfo {
+        flex: 0 1 320px !important;
+        width: auto !important;
+        max-width: 320px !important;
+        margin-left: 0 !important;
       }
       #orderBooking .form-row > button,
       #orderBooking .form-row > .btn {
