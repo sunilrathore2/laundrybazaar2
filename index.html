@@ -443,6 +443,36 @@
       body {
         aspect-ratio: auto !important;
       }
+      .top-header {
+        position: relative !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        justify-items: center !important;
+        align-items: end !important;
+        min-height: 110px !important;
+      }
+      .top-header #logoSection {
+        grid-column: 1 !important;
+        width: auto !important;
+        max-width: 280px !important;
+        justify-self: center !important;
+        overflow: visible !important;
+      }
+      .top-header .logo {
+        width: 240px !important;
+        max-width: 100% !important;
+        max-height: 90px !important;
+        height: auto !important;
+        object-fit: contain !important;
+        margin: 16px auto 4px !important;
+      }
+      .top-header #userBar {
+        position: absolute !important;
+        right: 12px !important;
+        bottom: 4px !important;
+        width: auto !important;
+        max-width: 220px !important;
+      }
       #orderBooking {
         min-height: calc(100vh - 150px) !important;
       }
