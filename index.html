@@ -570,7 +570,7 @@
     </div>
     <div class="form-row">
       <label>Phone:</label>
-      <input type="text" id="phone" maxlength="30" pattern="[0-9]{10}" title="Enter exactly 10 digits" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);lookupCustomer()">
+      <input type="text" id="phone" maxlength="30" title="Enter exactly 10 digits" autocomplete="off" autocorrect="off" spellcheck="false" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);lookupCustomer()">
       <span id="phoneLoading" class="loading" style="display:none;"></span>
       <span id="customerInfo" class="info" style="margin-left: 8px;"></span>
     </div>
