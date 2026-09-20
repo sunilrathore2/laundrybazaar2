@@ -2589,6 +2589,16 @@
         document.getElementById('orderError').className = 'error';
         return;
       }
+      const todayNow = new Date();
+      const todayLocal = todayNow.getFullYear() + '-' +
+        String(todayNow.getMonth() + 1).padStart(2, '0') + '-' +
+        String(todayNow.getDate()).padStart(2, '0');
+      if (order.deliveryDate === todayLocal &&
+          !window.confirm('Delivery date is today. Do you want to save this order?')) {
+        document.getElementById('orderError').textContent = 'Order save cancelled. Please check the delivery date.';
+        document.getElementById('orderError').className = 'info';
+        return;
+      }
       document.getElementById('orderError').textContent = "";
       document.getElementById('saveOrderBtn').disabled = true;
       google.script.run.withSuccessHandler(() => {
