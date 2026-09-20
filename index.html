@@ -457,6 +457,7 @@
         max-width: 280px !important;
         justify-self: center !important;
         overflow: visible !important;
+        transform: translateX(-45px) !important;
       }
       .top-header .logo {
         width: 240px !important;
@@ -468,10 +469,27 @@
       }
       .top-header #userBar {
         position: absolute !important;
-        right: 12px !important;
-        bottom: 4px !important;
+        right: 16px !important;
+        bottom: 18px !important;
         width: auto !important;
-        max-width: 220px !important;
+        max-width: 240px !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 6px !important;
+        white-space: nowrap !important;
+      }
+      .top-header #userBar .logout-btn {
+        display: inline-flex !important;
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: 78px !important;
+        max-width: none !important;
+        align-items: center !important;
+        justify-content: center !important;
+        white-space: nowrap !important;
+        writing-mode: horizontal-tb !important;
       }
       #orderBooking {
         min-height: calc(100vh - 150px) !important;
