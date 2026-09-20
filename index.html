@@ -494,6 +494,47 @@
       #orderBooking {
         min-height: calc(100vh - 150px) !important;
       }
+      #orderBooking,
+      #orderBooking label,
+      #orderBooking input,
+      #orderBooking select,
+      #orderBooking textarea,
+      #orderBooking button,
+      #orderBooking .btn,
+      #orderBooking table,
+      #orderBooking th,
+      #orderBooking td,
+      #orderBooking #itemsTable input,
+      #orderBooking #itemsTable select,
+      #orderBooking #itemsTable button {
+        font-size: 14px !important;
+      }
+      #orderBooking > h2 {
+        font-size: 18px !important;
+      }
+      #orderBooking .form-row {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 12px !important;
+      }
+      #orderBooking .form-row > label {
+        flex: 0 0 150px !important;
+        width: 150px !important;
+        min-width: 150px !important;
+        white-space: nowrap !important;
+      }
+      #orderBooking .form-row > input,
+      #orderBooking .form-row > select,
+      #orderBooking .form-row > textarea {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+      }
+      #orderBooking .form-row > button,
+      #orderBooking .form-row > .btn {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        white-space: nowrap !important;
+      }
     }
 
     @media screen and (max-width: 900px) {
