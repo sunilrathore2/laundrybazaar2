@@ -434,6 +434,20 @@
       width:100% !important;
       max-width:100% !important;
     }
+    /* Desktop only: let Order fill the available screen height.
+       Android/mobile keeps the existing 9:16 rules below unchanged. */
+    @media screen and (min-width: 901px) {
+      html, body {
+        min-height: 100vh !important;
+      }
+      body {
+        aspect-ratio: auto !important;
+      }
+      #orderBooking {
+        min-height: calc(100vh - 150px) !important;
+      }
+    }
+
     @media screen and (max-width: 900px) {
       html, body {
         position:relative !important;
