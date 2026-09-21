@@ -10,65 +10,43 @@
     (function () {
       'use strict';
       var APP_URL = 'https://script.google.com/macros/s/AKfycbyCpnx0zlYtLK4XYDZlMCxhh7IPp5hwjScP5OHVxkXlnM_JKDBQ2cdhRHMh5He28wZWAw/exec';
-      var pending = Object.create(null);
-      var sequence = 0;
-
-      function cleanup(id) {
-        var job = pending[id];
-        if (!job) return;
-        clearTimeout(job.timer);
-        if (job.form && job.form.parentNode) job.form.parentNode.removeChild(job.form);
-        if (job.frame && job.frame.parentNode) job.frame.parentNode.removeChild(job.frame);
-        delete pending[id];
-      }
-
-      window.addEventListener('message', function (event) {
-        var data = event.data || {};
-        if (data.type !== 'LB_FORM_RPC_RESULT' || !data.id || !pending[data.id]) return;
-        var job = pending[data.id];
-        cleanup(data.id);
-        if (data.ok) {
-          if (typeof job.success === 'function') job.success(data.result);
-        } else if (typeof job.failure === 'function') {
-          job.failure(new Error(data.error || 'Backend request failed.'));
-        }
-      });
-
       function invoke(method, args, success, failure) {
-        var id = 'lb_' + Date.now() + '_' + (++sequence);
-        var frame = document.createElement('iframe');
-        frame.name = id;
-        frame.style.cssText = 'position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;border:0;opacity:0';
-        frame.setAttribute('aria-hidden', 'true');
-        document.body.appendChild(frame);
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        var timer = setTimeout(function () {
+          if (controller) controller.abort();
+        }, 45000);
 
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = APP_URL;
-        form.target = id;
-        form.style.display = 'none';
-        [['lbRpc','1'],['id',id],['method',method],['args',JSON.stringify(args || [])]].forEach(function (pair) {
-          var input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = pair[0];
-          input.value = pair[1];
-          form.appendChild(input);
+        fetch(APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            api: 'laundry-bazaar-v1',
+            method: method,
+            args: args || []
+          }),
+          redirect: 'follow',
+          signal: controller ? controller.signal : undefined
+        })
+        .then(function (response) {
+          if (!response.ok) throw new Error('Backend HTTP ' + response.status);
+          return response.json();
+        })
+        .then(function (data) {
+          clearTimeout(timer);
+          if (data && data.ok) {
+            if (typeof success === 'function') success(data.result);
+          } else if (typeof failure === 'function') {
+            failure(new Error(data && data.error ? data.error : 'Backend request failed.'));
+          }
+        })
+        .catch(function (error) {
+          clearTimeout(timer);
+          if (typeof failure === 'function') {
+            failure(new Error(error && error.name === 'AbortError'
+              ? 'Backend connection timeout calling ' + method + '.'
+              : (error && error.message ? error.message : 'Backend request failed.')));
+          }
         });
-        document.body.appendChild(form);
-        pending[id] = {
-          success: success,
-          failure: failure,
-          frame: frame,
-          form: form,
-          timer: setTimeout(function () {
-            var current = pending[id];
-            cleanup(id);
-            if (current && typeof current.failure === 'function') {
-              current.failure(new Error('Backend connection timeout calling ' + method + '. Check that the latest Apps Script Code is deployed as a new web-app version.'));
-            }
-          }, 45000)
-        };
-        form.submit();
       }
 
       function makeRunner(success, failure) {
