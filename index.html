@@ -615,6 +615,30 @@
         width:auto !important;
         padding:8px 1px !important;
       }
+      /* Android Reports: place the tab labels in one vertical column. */
+      #reportSection .report-tabs {
+        display:flex !important;
+        flex-direction:column !important;
+        align-items:stretch !important;
+        width:100% !important;
+        gap:2px !important;
+        padding:2px !important;
+      }
+      #reportSection .report-tabs .reportTabBtn {
+        display:flex !important;
+        width:100% !important;
+        min-height:38px !important;
+        margin:0 !important;
+        align-items:center !important;
+        justify-content:center !important;
+        text-align:center !important;
+        writing-mode:horizontal-tb !important;
+      }
+      /* Hide Delivery Date only in the Android Order report. */
+      #orderDateReport th:nth-child(4),
+      #orderDateReport td:nth-child(4) {
+        display:none !important;
+      }
     }
     @supports (height:100svh) {
       @media screen and (max-width:900px) {
@@ -692,7 +716,7 @@
     </div>
     <div class="form-row">
       <label>Phone:</label>
-      <input type="text" id="phone" maxlength="30" title="Enter exactly 10 digits" autocomplete="off" autocorrect="off" spellcheck="false" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);lookupCustomer()">
+      <input type="text" id="phone" inputmode="numeric" pattern="[0-9]*" maxlength="30" title="Enter exactly 10 digits" autocomplete="off" autocorrect="off" spellcheck="false" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);lookupCustomer()">
       <span id="phoneLoading" class="loading" style="display:none;"></span>
       <span id="customerInfo" class="info" style="margin-left: 8px;"></span>
     </div>
@@ -728,7 +752,7 @@
     <h2>Delivery</h2>
     <div class="form-row">
       <label>Order Number:</label>
-      <input type="text" id="searchOrderNumber" placeholder="Order Number">
+      <input type="text" id="searchOrderNumber" inputmode="numeric" pattern="[0-9]*" placeholder="Order Number">
       <button class="btn" onclick="searchOrder()">Search</button>
     </div>
     <div id="searchResult"></div>
@@ -738,13 +762,13 @@
   <div id="invoiceSection" class="section">
     <h2>Invoice Section</h2>
     <label>Order Number:</label>
-    <input type="text" id="invoiceOrderNo" autocomplete="off">
+    <input type="text" id="invoiceOrderNo" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
     <button class="btn" onclick="printInvoiceFromTab()">Generate Invoice</button>
     <button class="btn" onclick="remotePrintInvoiceFromTab()">Remote Print Invoice</button>
     <div id="invoicePreview"></div>
     <hr>
     <div style="margin-top:12px;">
-      <input type="text" id="statusOrderNo" placeholder="Order Number" autocomplete="off">
+      <input type="text" id="statusOrderNo" inputmode="numeric" pattern="[0-9]*" placeholder="Order Number" autocomplete="off">
       <button class="btn" onclick="checkOrderStatus()">Check Status</button>
       <span id="orderStatusResult"></span>
       <button class="btn" id="completeOrderBtn" style="display:none;" onclick="markOrderCompleted()">Mark as Completed</button>
@@ -755,7 +779,7 @@
   <div id="tagSection" class="section">
     <h2>Tag Printing</h2>
     <label>Order Number:</label>
-    <input type="text" id="tagOrderNo" autocomplete="off">
+    <input type="text" id="tagOrderNo" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
     <button class="btn" onclick="printTagFromTab()">Print Tag</button>
     <button class="btn" onclick="remotePrintTagFromTab()">Remote Print Tag</button>
     <div id="tagPreview"></div>
@@ -764,7 +788,7 @@
   <!-- Reports Section -->
   <div id="reportSection" class="section">
     <h2>Reports</h2>
-    <div class="tab" style="background:#FFA500; color:#fff; border-radius: 8px 8px 0 0;">
+    <div class="tab report-tabs" style="background:#FFA500; color:#fff; border-radius: 8px 8px 0 0;">
       <button class="reportTabBtn active" onclick="showReportTab(event, 'dailyOrdersDiv')">Pending</button>
       <button class="reportTabBtn" onclick="showReportTab(event, 'completedOrdersDiv')">Completed</button>
       <button class="reportTabBtn" onclick="showReportTab(event, 'deliveryReportDiv')">Delivery</button>
@@ -792,7 +816,7 @@
     </div>
 
     <div id="customerHistoryDiv" class="reportTabContent" style="display:none; padding:12px; border: 1px solid #FFA500; border-top: none;">
-      <input type="text" id="custPhone" placeholder="Phone Number" autocomplete="off" style="margin-right: 12px;">
+      <input type="text" id="custPhone" inputmode="numeric" pattern="[0-9]*" placeholder="Phone Number" autocomplete="off" style="margin-right: 12px;">
       <button class="btn" onclick="generateCustomerHistory()">Show Report</button>
       <button class="btn" onclick="printCustomerHistory()">Print / PDF</button>
       <div id="customerHistory"></div>
@@ -832,7 +856,7 @@
       <button class="btn" id="voiceTokenBtn" type="button" onclick="startGuidedVoiceWithPermission_('details')">🎤 ग्राहक विवरण</button>
       <button class="btn" id="voiceTokenStopBtn" type="button" onclick="stopVoiceToken()" disabled>Stop</button>
     </div>
-    <div class="form-row"><label>फोन:</label><input type="text" id="tokenPhone" maxlength="10" oninput="lookupTokenCustomer()"></div>
+    <div class="form-row"><label>फोन:</label><input type="text" id="tokenPhone" inputmode="numeric" pattern="[0-9]*" maxlength="10" oninput="lookupTokenCustomer()"></div>
     <div class="form-row"><label>नाम:</label><input type="text" id="tokenCustomerName" oninput="capitalizeInput(this)"></div>
     <div class="form-row"><label>डिलीवरी तारीख:</label><input type="date" id="tokenDeliveryDate"></div>
     <div id="compactVoiceToolbar" class="simple-token-voice">
@@ -2933,14 +2957,14 @@
             <td>${r.actualDate}</td>
             <td>${r.orderNumber}</td>
             <td>${r.customerName}</td>
-            <td>â¹${Math.round(Number(r.amtPaid)||0)}</td>
+            <td>₹${Math.round(Number(r.amtPaid)||0)}</td>
             <td>${r.mode.charAt(0).toUpperCase() + r.mode.slice(1)}</td>
             <td style="max-width: 200px; word-wrap: break-word;">${r.remarks || '-'}</td>
           </tr>`;
         });
         html += '</table>';
-        html += `<p><b>Total Cash:</b> â¹${Math.round(totals.Cash||0)}</p>`;
-        html += `<p><b>Total Paytm:</b> â¹${Math.round(totals.Paytm||0)}</p>`;
+        html += `<p><b>Total Cash:</b> ₹${Math.round(totals.Cash||0)}</p>`;
+        html += `<p><b>Total Paytm:</b> ₹${Math.round(totals.Paytm||0)}</p>`;
         document.getElementById('deliveryReport').innerHTML = html;
       }).generateDeliveryReport(start, end, sessionToken);
     }
@@ -2992,7 +3016,7 @@
         html += '</table>';
         document.getElementById('orderDateReport').innerHTML = html;
         document.getElementById('orderDateTotals').innerHTML = `<div style="margin-top:10px; font-weight:bold;">
-          Total Order Amount: â¹${Math.round(data.totalAmountSum||0)}<br>
+          Total Order Amount: ₹${Math.round(data.totalAmountSum||0)}<br>
           Total Order Quantity: ${data.totalQtySum}
         </div>`;
       }).generateReport('orderDateRange', start, end, sessionToken);
