@@ -2473,9 +2473,8 @@
     }
 
     function isWeightOrderService_(service){
-      var raw=String(service||'').trim().toUpperCase();
-      var code=(typeof serviceOptionCode_==='function' ? serviceOptionCode_(service) : '');
-      return code==='KG' || code==='WF' || /^(?:KG|WF)(?:\b|\s)/.test(raw);
+      var code = serviceOptionCode_(service);
+      return code === 'KG' || code === 'WF';
     }
 
     function renderItemsTable(items) {
